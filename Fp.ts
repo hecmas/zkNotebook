@@ -1,4 +1,4 @@
-import { egcd } from "./tools.js";
+import { egcd, squareAndMultiply } from "./tools.js";
 
 class Field {
     p: number;
@@ -41,6 +41,10 @@ class Field {
         let [x, ,] = egcd(b, this.p);
         return new FieldElement((a * x) % this.p, this);
     }
+
+    exp(a: number, e: number): FieldElement {
+        return new FieldElement(squareAndMultiply(a, e, this.p), this);
+    }
 }
 
 class FieldElement {
@@ -76,13 +80,8 @@ class FieldElement {
         return this.field.div(this.value, b.value);
     }
 
-    // TODO: implement square and multiply in tools
     exp(b: FieldElement): FieldElement {
-        let result = this.field.one();
-        for (let i = 0; i < b.value; i++) {
-            result = result.mul(this);
-        }
-        return result;
+        return this.field.exp(this.value, b.value);
     }
 
     eq(b: FieldElement): boolean {

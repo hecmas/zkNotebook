@@ -1,4 +1,4 @@
-export { egcd };
+export { egcd, squareAndMultiply };
 
 // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Pseudocode
 function egcd(a: number, b: number): number[] {
@@ -24,4 +24,14 @@ function egcd(a: number, b: number): number[] {
     return [previous_s, previous_t, previous_r];
 }
 
-// console.log(egcd(7, 5));
+function squareAndMultiply(a: number, e: number, p: number): number {
+    let result = a;
+    let binary = e.toString(2);
+    for (let i = 1; i < binary.length; i++) {
+        result = (result * result) % p;
+        if (binary[i] === "1") {
+            result = (result * a) % p;
+        }
+    }
+    return result;
+}

@@ -3,18 +3,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.squareAndMultiply = exports.egcd = void 0;
 // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Pseudocode
 function egcd(a, b) {
-    if (a < b) {
-        let result = egcd(b, a);
-        return [result[1], result[0], result[2]];
-    }
-    if (b === 0) {
-        return [1, 0, a];
-    }
+    // Not needed
+    // if (a < b) {
+    //     let result = egcd(b, a);
+    //     return [result[1], result[0], result[2]];
+    // }
+    // Not needed
+    // if (b === 0n) {
+    //     return [1n, 0n, a];
+    // }
     let [previous_r, r] = [a, b];
-    let [previous_s, s] = [1, 0];
-    let [previous_t, t] = [0, 1];
+    let [previous_s, s] = [1n, 0n];
+    let [previous_t, t] = [0n, 1n];
     while (r) {
-        let q = Math.floor(previous_r / r);
+        let q = previous_r / r;
         [previous_r, r] = [r, previous_r - q * r];
         [previous_s, s] = [s, previous_s - q * s];
         [previous_t, t] = [t, previous_t - q * t];

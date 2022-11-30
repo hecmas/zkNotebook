@@ -1,6 +1,6 @@
 import { egcd, squareAndMultiply } from "./utils";
 
-class PrimeField {
+export class PrimeField {
     readonly p: bigint;
 
     // Constructor
@@ -60,7 +60,7 @@ class PrimeField {
             }
             return 0n;
         }
-        
+
         // negative exponent
         if (exponent < 0n) {
             base = this.inv(base);
@@ -70,6 +70,3 @@ class PrimeField {
         return squareAndMultiply(base, exponent, this.p);
     }
 }
-
-const Fp = new PrimeField(17n);
-console.log(Fp.exp(2n,5n));

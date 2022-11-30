@@ -1,75 +1,89 @@
-// import { Field, FieldElement } from "./Fp";
+import { PrimeField } from "./primeField";
+
+interface Point {
+    x: bigint;
+    y: bigint;
+}
 
 // /*
 //     * Elliptic curve over Fp
-//     * y^2 = x^3 + ax + b
+//     * y² = x³ + a·x + b
 //     * a, b are integers
-//     * 4a^3 + 27b^2 != 0
+//     * 4·a³ + 27·b² != 0
 //     * p is prime
 //     */
-// class EllipticCurve {
-//     _curveParams: {a: FieldElement, b: FieldElement};
-//     _field: Field;
+class EllipticCurve {
+    readonly a: bigint;
+    readonly b: bigint;
+    readonly p: bigint;
+    readonly Fp: PrimeField;
 
-//     constructor(a: FieldElement, b: FieldElement) {
-//         this._curveParams = {a: a, b: b};
-//         this._field = a.field;
-//     }
+    constructor(a: bigint, b: bigint, p: bigint) {
+        this.a = a;
+        this.b = b;
+        this.p = p;
+        this.Fp = new PrimeField(p);
+    }
 
-//     set curveParams({a: FieldElement, b: FieldElement}) {
-//         const three = new FieldElement(3, this._field);
-//         const two = new FieldElement(2, this._field);
-//         const firstSummand = a.exp(three).mul(4);
-//         if (4 * a.exp(three).add(b.exp(two)).eq(this._field.zero())) {
-//             return;
-//         }
+    // Public Accessors
+    get zero(): Point {
+        return { x: 0n, y: 0n }; // point at infinity, check how to represent it in the general case
+    }
 
-//         this._curveParams = values;
-//     }
+    // Basic Arithmetic
+    add(P: Point, Q: Point): Point {
+        if (P === this.zero) return Q;
 
-//     contains(x: FieldElement, y: FieldElement): boolean {
-//         return y.pow(2).eq(x.pow(3).add(this.a.mul(x)).add(this.b));
-//     }
+        if (Q === this.zero) return P;
 
-//     add(p: Point, q: Point): Point {
-//         if (p.isZero()) {
-//             return q;
-//         }
-//         if (q.isZero()) {
-//             return p;
-//         }
-//         if (p.x.eq(q.x)) {
-//             if (p.y.eq(q.y)) {
-//                 return this.double(p);
-//             } else {
-//                 return Point.zero(this);
-//             }
-//         }
-//         let lambda = q.y.sub(p.y).div(q.x.sub(p.x));
-//         let x = lambda.pow(2).sub(p.x).sub(q.x);
-//         let y = lambda.mul(p.x.sub(x)).sub(p.y);
-//         return new Point(x, y, this);
-//     }
+        if (P.x === Q.x) {
+            if (P.y !== Q.y) {
+                // P = -Q
+                return this.zero;
+            }
+        }
 
-//     double(p: Point): Point {
-//         if (p.isZero()) {
-//             return p;
-//         }
-//         let lambda = p.x.pow(2).mul(3).add(this.a).div(p.y.mul(2));
-//         let x = lambda.pow(2).sub(p.x.mul(2));
-//         let y = lambda.mul(p.x.sub(x)).sub(p.y);
-//         return new Point(x, y, this);
-//     }
+        let m: bigint;
+        if (P === Q) {
+            m = this.Fp.div(
+                this.Fp.add(this.Fp.mul(3n, this.Fp.mul(P.x, P.x)), this.a),
+                this.Fp.mul(2n, P.y)
+            );
+        } else {
+            m = this.Fp.div(this.Fp.sub(Q.y, P.y), this.Fp.sub(Q.x, P.x));
+        }
 
-//     mul(p: Point, e: number): Point {
-//         if (e === 0) {
-//             return Point.zero(this);
-//         }
-//         if (e === 1) {
-//             return p;
-//         }
-//         let q = this.double(p);
-//         let r = this.mul(p, e - 1);
-//         return this.add(q, r);
-//     }
-// }
+        let x = this.Fp.sub(this.Fp.sub(this.Fp.mul(m, m), P.x), Q.x);
+        let y = this.Fp.sub(this.Fp.mul(m, this.Fp.sub(P.x, x)), P.y);
+
+        return { x, y };
+    }
+
+    sub(P: Point, Q: Point): Point {
+        return this.add(P, this.neg(Q));
+    }
+
+    neg(P: Point): Point {
+        return { x: P.x, y: this.Fp.neg(P.y) };
+    }
+
+    escalarMul(P: Point, k: bigint): Point {
+        if (k === 0n) return this.zero;
+
+        if (k < 0n) {
+            k = -k;
+            P = this.neg(P);
+        }
+
+        let R = P;
+        let binary = k.toString(2);
+        for (let i = 1; i < binary.length; i++) {
+            R = this.add(R, R);
+            if (binary[i] === "1") {
+                R = this.add(R, P);
+            }
+        }
+
+        return R;
+    }
+}

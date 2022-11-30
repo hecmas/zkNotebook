@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.PrimeField = void 0;
 const utils_1 = require("./utils");
 class PrimeField {
     p;
@@ -38,12 +39,15 @@ class PrimeField {
         let [x, ,] = (0, utils_1.egcd)(a, this.p);
         return this.mod(x);
     }
+    div(a, b) {
+        return this.mul(a, this.inv(b));
+    }
     exp(base, exponent) {
         base = this.mod(base);
         // edge cases
         if (base === 0n) {
             if (exponent === 0n) {
-                throw new TypeError("0^0 is undefined");
+                throw TypeError("0^0 is undefined");
             }
             return 0n;
         }
@@ -55,6 +59,7 @@ class PrimeField {
         return (0, utils_1.squareAndMultiply)(base, exponent, this.p);
     }
 }
+exports.PrimeField = PrimeField;
 const Fp = new PrimeField(17n);
-console.log(Fp.exp(2n, 5n));
+console.log(Fp.exp(0n, 0n));
 //# sourceMappingURL=primeField.js.map

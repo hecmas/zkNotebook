@@ -47,7 +47,7 @@ class PrimeField {
         // edge cases
         if (base === 0n) {
             if (exponent === 0n) {
-                throw TypeError("0^0 is undefined");
+                throw new TypeError("0^0 is undefined");
             }
             return 0n;
         }
@@ -60,6 +60,4 @@ class PrimeField {
     }
 }
 exports.PrimeField = PrimeField;
-const Fp = new PrimeField(17n);
-console.log(Fp.exp(0n, 0n));
 //# sourceMappingURL=primeField.js.map

@@ -4,9 +4,10 @@
         "module": "commonjs",
         "strict": true,
         "noEmitOnError": true,
+        "strictNullChecks": false,
         "sourceMap": true,
         "rootDir": ".",
-        "outDir": "bin"
+        "outDir": "build"
     },
     "exclude": [
         "bin/*"

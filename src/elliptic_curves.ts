@@ -5,6 +5,9 @@ interface Point {
     y: bigint | null;
 }
 
+
+// TODO: Change prime field for prime extension field
+
 // /*
 //     * Elliptic curve over Fp
 //     * y² = x³ + a·x + b
@@ -16,13 +19,13 @@ class EllipticCurve {
     readonly a: bigint;
     readonly b: bigint;
     readonly p: bigint;
-    readonly Fp: PrimeField;
+    readonly F: PrimeField;
 
-    constructor(a: bigint, b: bigint, p: bigint) {
+    constructor(a: bigint, b: bigint, field: PrimeField) {
         this.a = a;
         this.b = b;
-        this.p = p;
-        this.Fp = new PrimeField(p);
+        this.F = field;
+        this.p = field.p;
     }
 
     // Public Accessors
@@ -45,16 +48,16 @@ class EllipticCurve {
 
         let m: bigint;
         if (P === Q) {
-            m = this.Fp.div(
-                this.Fp.add(this.Fp.mul(3n, this.Fp.mul(P.x, P.x)), this.a),
-                this.Fp.mul(2n, P.y)
+            m = this.F.div(
+                this.F.add(this.F.mul(3n, this.F.mul(P.x, P.x)), this.a),
+                this.F.mul(2n, P.y)
             );
         } else {
-            m = this.Fp.div(this.Fp.sub(Q.y, P.y), this.Fp.sub(Q.x, P.x));
+            m = this.F.div(this.F.sub(Q.y, P.y), this.F.sub(Q.x, P.x));
         }
 
-        let x = this.Fp.sub(this.Fp.sub(this.Fp.mul(m, m), P.x), Q.x);
-        let y = this.Fp.sub(this.Fp.mul(m, this.Fp.sub(P.x, x)), P.y);
+        let x = this.F.sub(this.F.sub(this.F.mul(m, m), P.x), Q.x);
+        let y = this.F.sub(this.F.mul(m, this.F.sub(P.x, x)), P.y);
 
         return { x, y };
     }
@@ -64,7 +67,7 @@ class EllipticCurve {
     }
 
     neg(P: Point): Point {
-        return { x: P.x, y: this.Fp.neg(P.y) };
+        return { x: P.x, y: this.F.neg(P.y) };
     }
 
     escalarMul(P: Point, k: bigint): Point {
@@ -88,5 +91,7 @@ class EllipticCurve {
     }
 }
 
-let E = new EllipticCurve(0n, 7n, 11n);
-console.log(E.Fp)
+let goldilocks = BigInt(2**64 - 2**32 + 1);
+let Fp = new PrimeField(goldilocks);
+let E = new EllipticCurve(0n, 7n, Fp);
+console.log(E.p)

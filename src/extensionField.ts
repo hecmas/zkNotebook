@@ -32,12 +32,17 @@ export class ExtensionField {
 
     // Basic Arithmetic
     mod(a: bigint[]): bigint[] {
-        const c = new Array<bigint>(this.degree);
-        for (let i = 0; i < this.degree; i++) {
-            c[i] = this.Fp.mod(a[i]);
+        while (a.length > this.degree) {
+            // Polynomial long division, assuming the modulus is monic 
+            // and its trailing coefficient is non-zero
+            const start = a.length - this.degree - 1;
+            const d = a.pop();
+            for (let i = 0; i < this.degree; i++) {
+                a[start+i] = this.Fp.sub(a[start+i], this.Fp.mul(d, this.modulus_coeffs[i]));
+            }
         }
 
-        return c;
+        return a;
     }
 
     add(a: bigint[], b: bigint[]): bigint[] {
@@ -76,13 +81,7 @@ export class ExtensionField {
                     c[i+j] = this.Fp.add(c[i+j], this.Fp.mul(a[i], b[j]));
                 }
             }
-            while (c.length > this.degree) {
-                const d = c.pop();
-                for (let i = 0; i < this.degree; i++) {
-                    c[i] = this.Fp.sub(c[i], this.Fp.mul(d, this.modulus_coeffs[i]));
-                }
-            }
-            return c;
+            return this.mod(c);
         }
     }
 
@@ -119,5 +118,5 @@ export class ExtensionField {
 }
 
 let Fp = new PrimeField(7n);
-let Fp2 = new ExtensionField(Fp, [0n, 1n, 1n]);
-console.log(Fp2.mul([1n, 2n], [3n, 4n]));
+let Fp2 = new ExtensionField(Fp, [2n, 3n, 1n]);
+console.log(Fp2.mod([3n,2n,2n,3n,5n]));

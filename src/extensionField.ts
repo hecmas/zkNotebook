@@ -1,7 +1,6 @@
 // https://github.com/ethereum/py_pairing
 // https://ethereum.github.io/execution-specs/autoapi/ethereum/crypto/alt_bn128/index.html
 
-import {degree} from "./utils";
 import { PrimeField } from "./primeField";
 
 export class ExtensionField {
@@ -30,18 +29,35 @@ export class ExtensionField {
         return a;
     }
 
+    // Comparators
+    eq(a: bigint[], b: bigint[]): boolean {
+        if (a.length === b.length && a.every((v, i) => v === b[i])) {
+            return true;
+        }
+        return false;
+    }
+
+    neq(a: bigint[], b: bigint[]): boolean {
+        return !this.eq(a, b);
+    }
+
     // Basic Arithmetic
     mod(a: bigint[]): bigint[] {
+        let adeg = degree(a);
+        a = a.slice(0, adeg + 1);
+
+        // Polynomial long division, assuming the modulus is monic
+        // and its trailing coefficient is non-zero
         while (a.length > this.degree) {
-            // Polynomial long division, assuming the modulus is monic 
-            // and its trailing coefficient is non-zero
             const start = a.length - this.degree - 1;
             const d = a.pop();
             for (let i = 0; i < this.degree; i++) {
-                a[start+i] = this.Fp.sub(a[start+i], this.Fp.mul(d, this.modulus_coeffs[i]));
+                a[start + i] = this.Fp.sub(
+                    a[start + i],
+                    this.Fp.mul(d, this.modulus_coeffs[i])
+                );
             }
         }
-
         return a;
     }
 
@@ -75,26 +91,45 @@ export class ExtensionField {
             }
             return c;
         } else {
-            const c = new Array<bigint>(this.degree*2-1).fill(0n);
+            const c = new Array<bigint>(this.degree * 2 - 1);
             for (let i = 0; i < this.degree; i++) {
                 for (let j = 0; j < this.degree; j++) {
-                    c[i+j] = this.Fp.add(c[i+j], this.Fp.mul(a[i], b[j]));
+                    c[i + j] = this.Fp.add(c[i + j], this.Fp.mul(a[i], b[j]));
                 }
             }
             return this.mod(c);
         }
     }
 
-    // inv(a: bigint): bigint {
-    //     a = this.mod(a);
-    //     if (a === 0n) return 0n;
-    //     let [x, ,] = egcd(a, this.p);
-    //     return this.mod(x);
-    // }
+    inv(a: bigint[]): bigint[] {
+        a = this.mod(a);
+        if (this.eq(a,this.zero)) return this.zero;
+        let [previous_r, r] = [a, this.modulus_coeffs];
+        let [previous_s, s] = [this.one, this.zero];
+        let [previous_t, t] = [this.zero, this.one];
+    
+        while (r !== this.zero) {
+            let [q,] = euclidean_division(previous_r, r, this.Fp);
+            [previous_r, r] = [r, this.sub(previous_r, this.mul(q, r))];
+            [previous_s, s] = [s, this.sub(previous_s, this.mul(q, s))];
+            [previous_t, t] = [t, this.sub(previous_t, this.mul(q, t))];
+        }
+        //let [x,y,d] = [previous_s, previous_t, previous_r];
 
-    // div(a: bigint, b: bigint): bigint {
-    //     return this.mul(a, this.inv(b));
-    // }
+        return this.mod(previous_s);
+    }
+
+    div(a: bigint[], b: bigint[]): bigint[] {
+        if (b.length === 1) {
+            const c = new Array<bigint>(this.degree);
+            for (let i = 0; i < this.degree; i++) {
+                c[i] = this.Fp.div(a[i], b[0]);
+            }
+            return c;
+        } else {
+            return this.mul(a, this.inv(b));
+        }
+    }
 
     // exp(base: bigint, exponent: bigint): bigint {
     //     base = this.mod(base);
@@ -117,6 +152,31 @@ export class ExtensionField {
     // }
 }
 
+function degree(a: bigint[]): number {
+    let d = a.length - 1;
+    while (d && a[d] === 0n) {
+        d--;
+    }
+    return d;
+}
+
+function euclidean_division(a: bigint[], b: bigint[], F: PrimeField): bigint[][] {
+    let dega = degree(a);
+    let degb = degree(b);
+    let q = new Array<bigint>(a.length).fill(0n);
+    let r = a;
+    while (degree(r) >= degb) {
+        let d = degree(r) - degb;
+        q[d] = F.div(r[dega], b[degb]);
+        for (let i = 0; i <= degb; i++) {
+            r[i] = F.sub(r[i], F.mul(q[d], b[i]));
+        }
+    }
+
+    return [q, r];
+}
+
 let Fp = new PrimeField(7n);
 let Fp2 = new ExtensionField(Fp, [2n, 3n, 1n]);
-console.log(Fp2.mod([3n,2n,2n,3n,5n]));
+// console.log(Fp2.mod([3n, 2n, 2n, 3n, 5n, 0n, 0n, 0n]));
+console.log(Fp2.div([3n, 2n, 2n, 3n, 5n, 0n, 0n, 0n], [2n, 3n, 1n]));

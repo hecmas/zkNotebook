@@ -1,4 +1,4 @@
-export { egcd, squareAndMultiply, degree };
+export { egcd, squareAndMultiply };
 
 // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Pseudocode
 function egcd(a: bigint, b: bigint): bigint[] {
@@ -36,12 +36,4 @@ function squareAndMultiply(a: bigint, e: bigint, p: bigint): bigint {
         }
     }
     return result;
-}
-
-function degree(a: bigint[]): number {
-    let d = a.length - 1;
-    while (d && a[d] === 0n) {
-        d--;
-    }
-    return d;
 }

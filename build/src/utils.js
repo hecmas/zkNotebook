@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.degree = exports.squareAndMultiply = exports.egcd = void 0;
+exports.squareAndMultiply = exports.egcd = void 0;
 // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Pseudocode
 function egcd(a, b) {
     // Not needed
@@ -36,12 +36,4 @@ function squareAndMultiply(a, e, p) {
     return result;
 }
 exports.squareAndMultiply = squareAndMultiply;
-function degree(a) {
-    let d = a.length - 1;
-    while (d && a[d] === 0n) {
-        d--;
-    }
-    return d;
-}
-exports.degree = degree;
 //# sourceMappingURL=utils.js.map

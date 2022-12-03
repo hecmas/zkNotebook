@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PrimeField = void 0;
-const utils_1 = require("./utils");
 class PrimeField {
     p;
     // Constructor
@@ -36,7 +35,7 @@ class PrimeField {
         a = this.mod(a);
         if (a === 0n)
             return 0n;
-        let [x, ,] = (0, utils_1.egcd)(a, this.p);
+        let [x, ,] = egcd(a, this.p);
         return this.mod(x);
     }
     div(a, b) {
@@ -56,8 +55,40 @@ class PrimeField {
             base = this.inv(base);
             exponent = -exponent;
         }
-        return (0, utils_1.squareAndMultiply)(base, exponent, this.p);
+        return squareAndMultiply(base, exponent, this.p);
     }
 }
 exports.PrimeField = PrimeField;
+function egcd(a, b) {
+    // Not needed
+    // if (a < b) {
+    //     let result = egcd(b, a);
+    //     return [result[1], result[0], result[2]];
+    // }
+    // Not needed
+    // if (b === 0n) {
+    //     return [1n, 0n, a];
+    // }
+    let [previous_r, r] = [a, b];
+    let [previous_s, s] = [1n, 0n];
+    let [previous_t, t] = [0n, 1n];
+    while (r) {
+        let q = previous_r / r;
+        [previous_r, r] = [r, previous_r - q * r];
+        [previous_s, s] = [s, previous_s - q * s];
+        [previous_t, t] = [t, previous_t - q * t];
+    }
+    return [previous_s, previous_t, previous_r];
+}
+function squareAndMultiply(a, e, p) {
+    let result = a;
+    let binary = e.toString(2);
+    for (let i = 1; i < binary.length; i++) {
+        result = (result * result) % p;
+        if (binary[i] === "1") {
+            result = (result * a) % p;
+        }
+    }
+    return result;
+}
 //# sourceMappingURL=primeField.js.map

@@ -19,23 +19,21 @@ class ExtensionField {
     }
     // Public Accessors
     get zero() {
-        return new Array(this.degree).fill(0n);
+        return [0n];
     }
     get one() {
-        const a = new Array(this.degree).fill(0n);
-        a[0] = 1n;
-        return a;
+        return [1n];
     }
     // Comparators
     eq(a, b) {
-        console.log(degree(a), degree(b));
-        if (degree(a) === degree(b)) {
-            if (a.length > b.length && b.every((v, i) => v === a[i])) {
-                return true;
+        const dega = degree(a);
+        const degb = degree(b);
+        if (dega === degb) {
+            for (let i = 0; i < dega + 1; i++) {
+                if (a[i] !== b[i])
+                    return false;
             }
-            else if (b.length > a.length && a.every((v, i) => v === b[i])) {
-                return true;
-            }
+            return true;
         }
         return false;
     }
@@ -44,51 +42,60 @@ class ExtensionField {
     }
     // Basic Arithmetic
     mod(a) {
-        let adeg = degree(a);
-        if (adeg < this.degree) {
+        let dega = degree(a);
+        if (dega < this.degree) {
+            for (let i = dega; i < dega + 1; i++) {
+                a[i] = this.Fp.mod(a[i]);
+            }
             return a;
         }
-        a = a.slice(0, adeg + 1);
-        // Polynomial long division, assuming the modulus is monic
-        // and its trailing coefficient is non-zero
-        while (a.length > this.degree) {
-            const start = a.length - this.degree - 1;
-            const d = a.pop();
-            for (let i = 0; i < this.degree; i++) {
-                a[start + i] = this.Fp.sub(a[start + i], this.Fp.mul(d, this.modulus_coeffs[i]));
-            }
-        }
-        return a;
+        let [, r] = euclidean_division(a, this.modulus_coeffs, this.Fp);
+        return r;
     }
     add(a, b) {
-        const c = new Array(this.degree);
-        for (let i = 0; i < this.degree; i++) {
-            c[i] = this.Fp.mod(a[i] + b[i]);
+        let dega = degree(a);
+        let degb = degree(b);
+        let maxdeg = Math.max(dega, degb);
+        const c = new Array(maxdeg + 1);
+        for (let i = 0; i < maxdeg + 1; i++) {
+            let ai = i < dega + 1 ? a[i] : 0n;
+            let bi = i < degb + 1 ? b[i] : 0n;
+            c[i] = this.Fp.mod(ai + bi);
         }
-        return c;
+        return this.mod(c);
     }
     sub(a, b) {
-        const c = new Array(this.degree);
-        for (let i = 0; i < this.degree; i++) {
-            c[i] = this.Fp.mod(a[i] - b[i]);
-        }
-        return c;
+        let c = this.add(a, this.neg(b));
+        return this.mod(c);
     }
     neg(a) {
-        return this.sub(this.zero, a);
+        for (let i = 0; i < degree(a) + 1; i++) {
+            a[i] = this.Fp.neg(a[i]);
+        }
+        return this.mod(a);
     }
     mul(a, b) {
-        if (b.length === 1) {
-            const c = new Array(this.degree);
-            for (let i = 0; i < this.degree; i++) {
-                c[i] = this.Fp.mul(a[i], b[0]);
+        if (degree(a) === 0) {
+            if (degree(b) === 0) {
+                return [this.Fp.mul(a[0], b[0])];
             }
-            return c;
+            else {
+                for (let i = 0; i < degree(b) + 1; i++) {
+                    b[i] = this.Fp.mul(a[0], b[i]);
+                }
+                return this.mod(b);
+            }
+        }
+        else if (degree(b) === 0) {
+            for (let i = 0; i < degree(a) + 1; i++) {
+                a[i] = this.Fp.mul(a[i], b[0]);
+            }
+            return this.mod(a);
         }
         else {
-            const c = new Array(this.degree * 2 - 1).fill(0n);
-            for (let i = 0; i < this.degree; i++) {
-                for (let j = 0; j < this.degree; j++) {
+            const c = new Array(degree(a) + degree(b) + 1).fill(0n);
+            for (let i = 0; i < degree(a) + 1; i++) {
+                for (let j = 0; j < degree(b) + 1; j++) {
                     c[i + j] = this.Fp.add(c[i + j], this.Fp.mul(a[i], b[j]));
                 }
             }
@@ -102,7 +109,7 @@ class ExtensionField {
         let [old_s, s] = [this.one, this.zero];
         let [old_t, t] = [this.zero, this.one];
         while (this.neq(r, this.zero)) {
-            const q = this.div(old_r, r);
+            const [q] = euclidean_division(old_r, r, Fp);
             [old_r, r] = [r, this.sub(old_r, this.mul(q, r))];
             [old_s, s] = [s, this.sub(old_s, this.mul(q, s))];
             [old_t, t] = [t, this.sub(old_t, this.mul(q, t))];
@@ -123,6 +130,11 @@ class ExtensionField {
     }
 }
 exports.ExtensionField = ExtensionField;
+// export class ExtensionField2 extends ExtensionField {
+//     constructor(modulus_coeffs: bigint[]) {
+//         this.Fp
+//     }
+// }
 function degree(a) {
     let d = a.length - 1;
     while (d && a[d] === 0n) {
@@ -143,7 +155,10 @@ function euclidean_division(a, b, F) {
     }
     return [q, r];
 }
-let Fp = new primeField_1.PrimeField(21888242871839275222246405745257275088696311157297823662689037894645226208583n);
-let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
-console.log(Fp2.inv([0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]));
+// let Fp = new PrimeField(21888242871839275222246405745257275088696311157297823662689037894645226208583n);
+// let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
+// console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
+let Fp = new primeField_1.PrimeField(17n);
+let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
+console.log(Fp2.eq(Fp2.mul([1n, 2n, 3n], [1n, 2n, 3n]), Fp2.zero));
 //# sourceMappingURL=extensionField.js.map

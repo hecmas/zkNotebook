@@ -1,6 +1,4 @@
 "use strict";
-// https://github.com/ethereum/py_pairing
-// https://ethereum.github.io/execution-specs/autoapi/ethereum/crypto/alt_bn128/index.html
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExtensionField = void 0;
 const primeField_1 = require("./primeField");
@@ -50,7 +48,7 @@ class ExtensionField {
             }
             return c;
         }
-        let [, r] = euclidean_division(a, this.modulus_coeffs, this.Fp);
+        let [, r] = euclidean_division(a, this.modulus_coeffs, this);
         return r;
     }
     add(a, b) {
@@ -144,11 +142,6 @@ class ExtensionField {
     }
 }
 exports.ExtensionField = ExtensionField;
-// export class ExtensionField2 extends ExtensionField {
-//     constructor(modulus_coeffs: bigint[]) {
-//         this.Fp
-//     }
-// }
 function degree(a) {
     let d = a.length - 1;
     while (d && a[d] === 0n) {
@@ -156,15 +149,15 @@ function degree(a) {
     }
     return d;
 }
-function euclidean_division(a, b, F) {
+function euclidean_division(a, b, Fq) {
     let dega = degree(a);
     let degb = degree(b);
     let q = new Array(a.length).fill(0n);
     let r = a.slice();
     for (let i = dega - degb; i >= 0; i--) {
-        q[i] = F.div(r[i + degb], b[degb]);
+        q[i] = Fq.Fp.div(r[i + degb], b[degb]);
         for (let j = 0; j < degb + 1; j++) {
-            r[i + j] = F.sub(r[i + j], F.mul(q[i], b[j]));
+            r[i + j] = Fq.Fp.sub(r[i + j], Fq.Fp.mul(q[i], b[j]));
         }
     }
     return [q, r];
@@ -174,7 +167,7 @@ function egcd(a, b, Fq) {
     let [old_s, s] = [Fq.one, Fq.zero];
     let [old_t, t] = [Fq.zero, Fq.one];
     while (Fq.neq(r, Fq.zero)) {
-        const [q,] = euclidean_division(old_r, r, Fp);
+        const [q,] = euclidean_division(old_r, r, Fq);
         let old_rr = old_r.slice();
         let old_ss = old_s.slice();
         let old_tt = old_t.slice();
@@ -212,6 +205,6 @@ function squareAndMultiply(base, exponent, Fq) {
 // console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
 let Fp = new primeField_1.PrimeField(17n);
 let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
-let result = Fp2.inv([-8n, 12n]);
+let result = Fp2.inv([-16n, -14n]);
 console.log(result);
 //# sourceMappingURL=extensionField.js.map

@@ -52,7 +52,7 @@ export class ExtensionField {
             return c;
         }
 
-        let [, r] = euclidean_division(a, this.modulus_coeffs, this.Fp);
+        let [, r] = euclidean_division(a, this.modulus_coeffs, this);
         return r;
     }
 
@@ -162,16 +162,16 @@ function degree(a: bigint[]): number {
 function euclidean_division(
     a: bigint[],
     b: bigint[],
-    F: PrimeField
+    Fq: ExtensionField
 ): bigint[][] {
     let dega = degree(a);
     let degb = degree(b);
     let q = new Array<bigint>(a.length).fill(0n);
     let r = a.slice();
     for (let i = dega - degb; i >= 0; i--) {
-        q[i] = F.div(r[i + degb], b[degb]);
+        q[i] = Fq.Fp.div(r[i + degb], b[degb]);
         for (let j = 0; j < degb+1; j++) {
-            r[i + j] = F.sub(r[i + j], F.mul(q[i], b[j]));
+            r[i + j] = Fq.Fp.sub(r[i + j], Fq.Fp.mul(q[i], b[j]));
         }
     }
     return [q, r];
@@ -183,7 +183,7 @@ function egcd(a: bigint[], b: bigint[], Fq: ExtensionField): bigint[][] {
     let [old_t, t] = [Fq.zero, Fq.one];
 
     while (Fq.neq(r, Fq.zero)) {
-        const [q,] = euclidean_division(old_r, r, Fp);
+        const [q,] = euclidean_division(old_r, r, Fq);
         let old_rr = old_r.slice();
         let old_ss = old_s.slice();
         let old_tt = old_t.slice();
@@ -227,5 +227,5 @@ function squareAndMultiply(base: bigint[], exponent: bigint, Fq: ExtensionField)
 
 // let Fp = new PrimeField(17n);
 // let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
-// let result = Fp2.inv([-8n, 12n]);
+// let result = Fp2.inv([-16n, -14n]);
 // console.log(result);

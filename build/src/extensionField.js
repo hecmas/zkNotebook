@@ -108,7 +108,7 @@ class ExtensionField {
     }
     inv(a) {
         if (this.eq(a, this.zero))
-            return this.zero;
+            throw new TypeError("Zero has no multiplicative inverse");
         let [old_r, r] = [this.modulus_coeffs, a];
         let [old_s, s] = [this.one, this.zero];
         let [old_t, t] = [this.zero, this.one];
@@ -138,6 +138,8 @@ class ExtensionField {
     }
     div(a, b) {
         if (degree(b) === 0) {
+            if (b[0] === 0n)
+                throw new Error('Division by zero');
             const c = new Array(this.degree);
             for (let i = 0; i < this.degree; i++) {
                 c[i] = this.Fp.div(a[i], b[0]);
@@ -180,7 +182,7 @@ function euclidean_division(a, b, F) {
 // console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
 let Fp = new primeField_1.PrimeField(17n);
 let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
-let result = Fp2.inv([1n, 2n]);
+let result = Fp2.div([2n], [0n]);
 console.log(result);
 // console.log(Fp2.mul([1n, 2n], result));
 //# sourceMappingURL=extensionField.js.map

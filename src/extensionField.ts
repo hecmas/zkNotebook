@@ -115,7 +115,7 @@ export class ExtensionField {
     }
 
     inv(a: bigint[]): bigint[] {
-        if (this.eq(a, this.zero)) return this.zero;
+        if (this.eq(a, this.zero)) throw new TypeError("Zero has no multiplicative inverse");
 
         let [old_r, r] = [this.modulus_coeffs,a];
         let [old_s, s] = [this.one, this.zero];
@@ -151,6 +151,7 @@ export class ExtensionField {
 
     div(a: bigint[], b: bigint[]): bigint[] {
         if (degree(b) === 0) {
+            if (b[0] === 0n) throw new Error('Division by zero');
             const c = new Array<bigint>(this.degree);
             for (let i = 0; i < this.degree; i++) {
                 c[i] = this.Fp.div(a[i], b[0]);
@@ -220,6 +221,6 @@ function euclidean_division(
 
 let Fp = new PrimeField(17n);
 let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
-let result = Fp2.inv([1n,2n]);
+let result = Fp2.div([2n],[0n]);
 console.log(result);
 // console.log(Fp2.mul([1n, 2n], result));

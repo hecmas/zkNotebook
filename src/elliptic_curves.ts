@@ -1,12 +1,10 @@
 import { PrimeField } from "./primeField";
+import { ExtensionField } from "./extensionField";
 
-interface Point {
-    x: bigint | null;
-    y: bigint | null;
+export interface Point {
+    x: bigint | bigint[];
+    y: bigint | bigint[];
 }
-
-
-// TODO: Change prime field for prime extension field
 
 // /*
 //     * Elliptic curve over Fp
@@ -15,22 +13,68 @@ interface Point {
 //     * 4·a³ + 27·b² != 0
 //     * p is prime
 //     */
-class EllipticCurve {
-    readonly a: bigint;
-    readonly b: bigint;
-    readonly p: bigint;
-    readonly F: PrimeField;
+export class EllipticCurve {
+    readonly a: bigint | bigint[];
+    readonly b: bigint | bigint[];
+    // readonly p: bigint;
+    readonly F: PrimeField | ExtensionField;
 
-    constructor(a: bigint, b: bigint, field: PrimeField) {
+    constructor(
+        a: bigint | bigint[],
+        b: bigint | bigint[],
+        field: PrimeField | ExtensionField
+    ) {
         this.a = a;
         this.b = b;
         this.F = field;
-        this.p = field.p;
+        // this.p = field.p;
     }
 
     // Public Accessors
     get zero(): Point {
         return { x: null, y: null };
+    }
+
+    // Check if a point is the identity element
+    is_zero(P: Point): boolean {
+        return P.x === null && P.y === null;
+    }
+
+    // Check that a point is on the curve defined by y² == x³ + a·x + b
+    is_on_curve(P: Point): boolean {
+        if (this.is_zero(P)) {
+            return true;
+        }
+
+        if (
+            typeof P.x === "bigint" &&
+            typeof P.y === "bigint" &&
+            typeof this.a === "bigint" &&
+            typeof this.b === "bigint" &&
+            this.F instanceof PrimeField
+        ) {
+            const left_side = this.F.exp(P.y, 2n);
+            const right_side = this.F.add(
+                this.F.add(this.F.exp(P.x, 3n), this.F.mul(this.a, P.x)),
+                this.b
+            );
+
+            return left_side === right_side;
+        } else if (
+            typeof P.x === "object" &&
+            typeof P.y === "object" &&
+            typeof this.a === "object" &&
+            typeof this.b === "object" &&
+            this.F instanceof ExtensionField
+        ) {
+            const left_side = this.F.exp(P.y, 2n);
+            const right_side = this.F.add(
+                this.F.add(this.F.exp(P.x, 3n), this.F.mul(this.a, P.x)),
+                this.b
+            );
+
+            return this.F.eq(left_side, right_side);
+        }
     }
 
     // Basic Arithmetic
@@ -46,20 +90,51 @@ class EllipticCurve {
             }
         }
 
-        let m: bigint;
-        if (P === Q) {
-            m = this.F.div(
-                this.F.add(this.F.mul(3n, this.F.mul(P.x, P.x)), this.a),
-                this.F.mul(2n, P.y)
-            );
-        } else {
-            m = this.F.div(this.F.sub(Q.y, P.y), this.F.sub(Q.x, P.x));
+        if (
+            typeof P.x === "bigint" &&
+            typeof P.y === "bigint" &&
+            typeof Q.x === "bigint" &&
+            typeof Q.y === "bigint" &&
+            typeof this.a === "bigint" &&
+            typeof this.b === "bigint" &&
+            this.F instanceof PrimeField
+        ) {
+            let m: bigint;
+            if (P.x === Q.x && P.y === Q.y) {
+                m = this.F.div(
+                    this.F.add(this.F.mul(3n, this.F.mul(P.x, P.x)), this.a),
+                    this.F.mul(2n, P.y)
+                );
+            } else {
+                m = this.F.div(this.F.sub(Q.y, P.y), this.F.sub(Q.x, P.x));
+            }
+
+            let x = this.F.sub(this.F.sub(this.F.mul(m, m), P.x), Q.x);
+            let y = this.F.sub(this.F.mul(m, this.F.sub(P.x, x)), P.y);
+            return { x, y };
+        } else if (
+            typeof P.x === "object" &&
+            typeof P.y === "object" &&
+            typeof Q.x === "object" &&
+            typeof Q.y === "object" &&
+            typeof this.a === "object" &&
+            typeof this.b === "object" &&
+            this.F instanceof ExtensionField
+        ) {
+            let m: bigint[];
+            if (P.x === Q.x && P.y === Q.y) {
+                m = this.F.div(
+                    this.F.add(this.F.mul([3n], this.F.mul(P.x, P.x)), this.a),
+                    this.F.mul([2n], P.y)
+                );
+            } else {
+                m = this.F.div(this.F.sub(Q.y, P.y), this.F.sub(Q.x, P.x));
+            }
+
+            let x = this.F.sub(this.F.sub(this.F.mul(m, m), P.x), Q.x);
+            let y = this.F.sub(this.F.mul(m, this.F.sub(P.x, x)), P.y);
+            return { x, y };
         }
-
-        let x = this.F.sub(this.F.sub(this.F.mul(m, m), P.x), Q.x);
-        let y = this.F.sub(this.F.mul(m, this.F.sub(P.x, x)), P.y);
-
-        return { x, y };
     }
 
     sub(P: Point, Q: Point): Point {
@@ -67,7 +142,16 @@ class EllipticCurve {
     }
 
     neg(P: Point): Point {
-        return { x: P.x, y: this.F.neg(P.y) };
+        if (this.is_zero(P)) return this.zero;
+
+        if (typeof P.y === "bigint" && this.F instanceof PrimeField) {
+            return { x: P.x, y: this.F.neg(P.y) };
+        } else if (
+            typeof P.y === "object" &&
+            this.F instanceof ExtensionField
+        ) {
+            return { x: P.x, y: this.F.neg(P.y) };
+        }
     }
 
     escalarMul(P: Point, k: bigint): Point {
@@ -89,9 +173,39 @@ class EllipticCurve {
 
         return R;
     }
-}
 
-let goldilocks = BigInt(2**64 - 2**32 + 1);
-let Fp = new PrimeField(goldilocks);
-let E = new EllipticCurve(0n, 7n, Fp);
-console.log(E.p)
+    // Fix this
+    twist(P: Point, w: bigint[]): Point {
+        if (this.is_zero(P)) return this.zero;
+
+        if (
+            typeof P.x === "object" &&
+            typeof P.y === "object" &&
+            this.F instanceof ExtensionField
+        ) {
+            // Field isomorphism from Z[p] / x**2 to Z[p] / x**2 - 18*x + 82
+            let xcoeffs = [
+                this.F.Fp.sub(P.x[0], this.F.Fp.mul(9n, P.x[1])),
+                P.x[1],
+            ];
+            let ycoeffs = [
+                this.F.Fp.sub(P.y[0], this.F.Fp.mul(9n, P.y[1])),
+                P.y[1],
+            ];
+            // Isomorphism into subfield of Z[p] / w**12 - 18 * w**6 + 82,
+            // where w**6 = x
+            let nx = new Array<bigint>(12).fill(0n);
+            nx[0] = xcoeffs[0];
+            nx[7] = xcoeffs[1];
+            let ny = new Array<bigint>(12).fill(0n);
+            ny[0] = ycoeffs[0];
+            ny[7] = ycoeffs[1];
+
+            // Divide x coord by w**2 and y coord by w**3
+            let x = this.F.div(nx,this.F.exp(w, 2n));
+            let y = this.F.div(ny,this.F.exp(w, 3n));
+            
+            return { x, y };
+        }
+    }
+}

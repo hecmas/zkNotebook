@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExtensionField = void 0;
-const primeField_1 = require("./primeField");
 class ExtensionField {
     Fp;
     modulus_coeffs;
@@ -203,8 +202,8 @@ function squareAndMultiply(base, exponent, Fq) {
 // let Fp = new PrimeField(21888242871839275222246405745257275088696311157297823662689037894645226208583n);
 // let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 // console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
-let Fp = new primeField_1.PrimeField(17n);
-let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
-let result = Fp2.inv([-16n, -14n]);
-console.log(result);
+// let Fp = new PrimeField(17n);
+// let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
+// let result = Fp2.inv([-16n, -14n]);
+// console.log(result);
 //# sourceMappingURL=extensionField.js.map

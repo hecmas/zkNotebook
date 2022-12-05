@@ -5,3 +5,4 @@
 %TODO: Add interface for elements of extension field, instead of bigint[]
 %TODO: Implement real typescript project, with common interfaces
 %TODO: Unify primeField and extensionField
+%TODO: Improve a lot elliptic curves thing

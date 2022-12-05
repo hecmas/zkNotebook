@@ -32,7 +32,6 @@ class PrimeField {
         return this.mod(a * b);
     }
     inv(a) {
-        a = this.mod(a);
         if (a === 0n)
             return 0n;
         let [x, ,] = egcd(a, this.p);
@@ -91,4 +90,6 @@ function squareAndMultiply(a, e, p) {
     }
     return result;
 }
+const Fp = new PrimeField(17n);
+console.log(Fp.inv(30n));
 //# sourceMappingURL=primeField.js.map

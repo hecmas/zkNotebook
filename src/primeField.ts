@@ -38,7 +38,6 @@ export class PrimeField {
     }
 
     inv(a: bigint): bigint {
-        a = this.mod(a);
         if (a === 0n) return 0n;
         let [x, ,] = egcd(a, this.p);
         return this.mod(x);
@@ -105,3 +104,6 @@ function squareAndMultiply(a: bigint, e: bigint, p: bigint): bigint {
     }
     return result;
 }
+
+const Fp = new PrimeField(17n);
+console.log(Fp.inv(30n));

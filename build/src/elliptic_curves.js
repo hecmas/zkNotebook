@@ -13,21 +13,25 @@ const extensionField_1 = require("./extensionField");
 class EllipticCurve {
     a;
     b;
-    // readonly p: bigint;
     F;
     constructor(a, b, field) {
+        // const first_summand = field.mul(4n,field.exp(a, 3n));
+        // const second_summan = field.mul(27n,field.exp(b, 2n));
+        // const sum = field.add(first_summand, second_summan);
+        // if (field.eq(sum, 0n)) {
+        //     throw new Error("The curve is singular, choose another a and b");
+        // }
         this.a = a;
         this.b = b;
         this.F = field;
-        // this.p = field.p;
     }
     // Public Accessors
     get zero() {
-        return { x: null, y: null };
+        return null;
     }
     // Check if a point is the identity element
     is_zero(P) {
-        return P.x === null && P.y === null;
+        return P === this.zero;
     }
     // Check that a point is on the curve defined by y² == x³ + a·x + b
     is_on_curve(P) {
@@ -133,13 +137,14 @@ class EllipticCurve {
         }
         return R;
     }
-    twist(P, w) {
+    // Fix this
+    twist(P, w2, w3) {
         if (this.is_zero(P))
             return this.zero;
         if (typeof P.x === "object" &&
             typeof P.y === "object" &&
             this.F instanceof extensionField_1.ExtensionField) {
-            // Field isomorphism from Z[p] / x**2 to Z[p] / x**2 - 18*x + 82
+            // Field isomorphism from Fp[X]/(X²) to Fp[X]/(X² - 18·X + 82)
             let xcoeffs = [
                 this.F.Fp.sub(P.x[0], this.F.Fp.mul(9n, P.x[1])),
                 P.x[1],
@@ -148,20 +153,20 @@ class EllipticCurve {
                 this.F.Fp.sub(P.y[0], this.F.Fp.mul(9n, P.y[1])),
                 P.y[1],
             ];
-            // Isomorphism into subfield of Z[p] / w**12 - 18 * w**6 + 82,
-            // where w**6 = x
-            let nx = new Array(12).fill(0n);
-            nx[0] = xcoeffs[0];
-            nx[7] = xcoeffs[1];
-            let ny = new Array(12).fill(0n);
-            ny[0] = ycoeffs[0];
-            ny[7] = ycoeffs[1];
-            // Divide x coord by w**2 and y coord by w**3
-            let x = this.F.mul(nx, this.F.exp(w, 2n));
-            let y = this.F.mul(ny, this.F.exp(w, 3n));
+            // Isomorphism into subfield of Fp[X]/(w¹² - 18·w⁶ + 82),
+            // where w⁶ = X
+            let nx = [xcoeffs[0], 0n, 0n, 0n, 0n, 0n, xcoeffs[1]];
+            let ny = [ycoeffs[0], 0n, 0n, 0n, 0n, 0n, ycoeffs[1]];
+            // Divide x coord by w² and y coord by w³
+            let x = this.F.div(nx, w2);
+            let y = this.F.div(ny, w3);
             return { x, y };
         }
     }
 }
 exports.EllipticCurve = EllipticCurve;
+const p = 21888242871839275222246405745257275088696311157297823662689037894645226208583n;
+let Fp = new primeField_1.PrimeField(p);
+let Ep = new EllipticCurve(0n, 3n, Fp);
+console.log(Ep.is_zero({ x: 3n, y: null }));
 //# sourceMappingURL=elliptic_curves.js.map

@@ -9,7 +9,7 @@ let Fp = new primeField_1.PrimeField(p);
 let Fp2 = new extensionField_1.ExtensionField(Fp, [1n, 0n, 1n]);
 let Fp12 = new extensionField_1.ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 const b = 3n;
-const b2 = Fp2.div([3n, 0n], [9n, 1n]);
+const b2 = Fp2.div([3n], [9n, 1n]);
 const b12 = [3n];
 let Ep = new elliptic_curves_1.EllipticCurve(0n, b, Fp);
 let Ep2 = new elliptic_curves_1.EllipticCurve([0n], b2, Fp2);
@@ -27,9 +27,14 @@ const G2 = {
         4082367875863433681332203403145435568316851327593401208105741076214120093531n,
     ],
 };
+// Points are over their respective curves
 console.log(Ep.is_on_curve(G1));
 console.log(Ep2.is_on_curve(G2));
 let w = [0n, 1n];
-let G12 = Ep2.twist(G2, w);
+// console.log(Fp2.inv(w));
+let w2 = Fp12.exp(w, 2n);
+let w3 = Fp12.exp(w, 3n);
+let G12 = Ep12.twist(G2, w2, w3);
+// Check that the twist creates a point that is on the curve
 console.log(Ep12.is_on_curve(G12));
 //# sourceMappingURL=alt_bn128.js.map

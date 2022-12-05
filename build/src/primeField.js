@@ -33,13 +33,13 @@ class PrimeField {
     }
     inv(a) {
         if (a === 0n)
-            throw new TypeError("Zero has no multiplicative inverse");
+            throw new Error("Zero has no multiplicative inverse");
         let [x, ,] = egcd(a, this.p);
         return this.mod(x);
     }
     div(a, b) {
         if (b === 0n)
-            throw new TypeError("Division by zero");
+            throw new Error("Division by zero");
         return this.mul(a, this.inv(b));
     }
     exp(base, exponent) {
@@ -47,7 +47,7 @@ class PrimeField {
         // edge cases
         if (base === 0n) {
             if (exponent === 0n) {
-                throw new TypeError("0^0 is undefined");
+                throw new Error("0^0 is undefined");
             }
             return 0n;
         }

@@ -112,7 +112,7 @@ export class ExtensionField {
     }
 
     inv(a: bigint[]): bigint[] {
-        if (this.eq(a, this.zero)) throw new TypeError("Zero has no multiplicative inverse");
+        if (this.eq(a, this.zero)) throw new Error("Zero has no multiplicative inverse");
         const [, y,] = egcd(this.modulus_coeffs, a, this);
         return y;
     }
@@ -136,7 +136,7 @@ export class ExtensionField {
         // edge cases
         if (this.eq(base, this.zero)) {
             if (exponent === 0n) {
-                throw new TypeError("0^0 is undefined");
+                throw new Error("0^0 is undefined");
             }
             return this.zero;
         }

@@ -38,13 +38,13 @@ export class PrimeField {
     }
 
     inv(a: bigint): bigint {
-        if (a === 0n) throw new TypeError("Zero has no multiplicative inverse");
+        if (a === 0n) throw new Error("Zero has no multiplicative inverse");
         let [x, ,] = egcd(a, this.p);
         return this.mod(x);
     }
 
     div(a: bigint, b: bigint): bigint {
-        if (b === 0n) throw new TypeError("Division by zero");
+        if (b === 0n) throw new Error("Division by zero");
         return this.mul(a, this.inv(b));
     }
 
@@ -54,7 +54,7 @@ export class PrimeField {
         // edge cases
         if (base === 0n) {
             if (exponent === 0n) {
-                throw new TypeError("0^0 is undefined");
+                throw new Error("0^0 is undefined");
             }
             return 0n;
         }

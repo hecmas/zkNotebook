@@ -1,6 +1,3 @@
-// https://github.com/ethereum/py_pairing
-// https://ethereum.github.io/execution-specs/autoapi/ethereum/crypto/alt_bn128/index.html
-
 import { PrimeField } from "./primeField";
 
 export class ExtensionField {
@@ -116,37 +113,8 @@ export class ExtensionField {
 
     inv(a: bigint[]): bigint[] {
         if (this.eq(a, this.zero)) throw new TypeError("Zero has no multiplicative inverse");
-
-        let [old_r, r] = [this.modulus_coeffs,a];
-        let [old_s, s] = [this.one, this.zero];
-        let [old_t, t] = [this.zero, this.one];
-
-        while (this.neq(r, this.zero)) {
-            const [q,] = euclidean_division(old_r, r, Fp);
-            let old_rr = old_r.slice();
-            let old_ss = old_s.slice();
-            let old_tt = old_t.slice();
-            old_rr = this.sub(old_rr, this.mul(q, r));
-            old_ss = this.sub(old_ss, this.mul(q, s));
-            old_tt = this.sub(old_tt, this.mul(q, t));
-
-            [old_r, r] = [r, old_rr];
-            [old_s, s] = [s, old_ss];
-            [old_t, t] = [t, old_tt];
-        }
-
-        for (let i = 0; i < degree(old_s) + 1; i++) {
-            old_s[i] = this.Fp.div(old_s[i], old_r[0]);
-        }
-        for (let i = 0; i < degree(old_t) + 1; i++) {
-            old_t[i] = this.Fp.div(old_t[i], old_r[0]);
-        }
-        for (let i = 0; i < degree(old_r) + 1; i++) {
-            old_r[i] = this.Fp.div(old_r[i], old_r[0]);
-        }
-
-        // return [old_s, old_t, old_r]
-        return old_t;
+        const [, y,] = egcd(this.modulus_coeffs, a, this);
+        return y;
     }
 
     div(a: bigint[], b: bigint[]): bigint[] {
@@ -156,38 +124,32 @@ export class ExtensionField {
             for (let i = 0; i < this.degree; i++) {
                 c[i] = this.Fp.div(a[i], b[0]);
             }
-            return c;
+            return this.mod(c);
         } else {
             return this.mul(a, this.inv(b));
         }
     }
 
-    // exp(base: bigint, exponent: bigint): bigint {
-    //     base = this.mod(base);
+    exp(base: bigint[], exponent: bigint): bigint[] {
+        base = this.mod(base);
 
-    //     // edge cases
-    //     if (base === 0n) {
-    //         if (exponent === 0n) {
-    //             throw new TypeError("0^0 is undefined");
-    //         }
-    //         return 0n;
-    //     }
+        // edge cases
+        if (this.eq(base, this.zero)) {
+            if (exponent === 0n) {
+                throw new TypeError("0^0 is undefined");
+            }
+            return this.zero;
+        }
 
-    //     // negative exponent
-    //     if (exponent < 0n) {
-    //         base = this.inv(base);
-    //         exponent = -exponent;
-    //     }
+        // negative exponent
+        if (exponent < 0n) {
+            base = this.inv(base);
+            exponent = -exponent;
+        }
 
-    //     return squareAndMultiply(base, exponent, this.p);
-    // }
+        return squareAndMultiply(base, exponent, this);
+    }
 }
-
-// export class ExtensionField2 extends ExtensionField {
-//     constructor(modulus_coeffs: bigint[]) {
-//         this.Fp
-//     }
-// }
 
 function degree(a: bigint[]): number {
     let d = a.length - 1;
@@ -215,12 +177,55 @@ function euclidean_division(
     return [q, r];
 }
 
+function egcd(a: bigint[], b: bigint[], Fq: ExtensionField): bigint[][] {
+    let [old_r, r] = [a,b];
+    let [old_s, s] = [Fq.one, Fq.zero];
+    let [old_t, t] = [Fq.zero, Fq.one];
+
+    while (Fq.neq(r, Fq.zero)) {
+        const [q,] = euclidean_division(old_r, r, Fp);
+        let old_rr = old_r.slice();
+        let old_ss = old_s.slice();
+        let old_tt = old_t.slice();
+        old_rr = Fq.sub(old_rr, Fq.mul(q, r));
+        old_ss = Fq.sub(old_ss, Fq.mul(q, s));
+        old_tt = Fq.sub(old_tt, Fq.mul(q, t));
+
+        [old_r, r] = [r, old_rr];
+        [old_s, s] = [s, old_ss];
+        [old_t, t] = [t, old_tt];
+    }
+
+    for (let i = 0; i < degree(old_s) + 1; i++) {
+        old_s[i] = Fq.Fp.div(old_s[i], old_r[0]);
+    }
+    for (let i = 0; i < degree(old_t) + 1; i++) {
+        old_t[i] = Fq.Fp.div(old_t[i], old_r[0]);
+    }
+    for (let i = 0; i < degree(old_r) + 1; i++) {
+        old_r[i] = Fq.Fp.div(old_r[i], old_r[0]);
+    }
+
+    return [old_s, old_t, old_r]
+}
+
+function squareAndMultiply(base: bigint[], exponent: bigint, Fq: ExtensionField): bigint[] {
+    let result = base.slice();
+    let binary = exponent.toString(2);
+    for (let i = 1; i < binary.length; i++) {
+        result = Fq.mul(result, result);
+        if (binary[i] === "1") {
+            result = Fq.mul(result, base);
+        }
+    }
+    return result;
+}
+
 // let Fp = new PrimeField(21888242871839275222246405745257275088696311157297823662689037894645226208583n);
 // let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 // console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
 
-let Fp = new PrimeField(17n);
-let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
-let result = Fp2.div([2n],[0n]);
-console.log(result);
-// console.log(Fp2.mul([1n, 2n], result));
+// let Fp = new PrimeField(17n);
+// let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
+// let result = Fp2.inv([-8n, 12n]);
+// console.log(result);

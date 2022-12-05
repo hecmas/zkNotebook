@@ -105,6 +105,3 @@ function squareAndMultiply(a: bigint, e: bigint, p: bigint): bigint {
     }
     return result;
 }
-
-const Fp = new PrimeField(17n);
-console.log(Fp.inv(30n));

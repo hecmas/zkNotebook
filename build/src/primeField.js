@@ -92,6 +92,4 @@ function squareAndMultiply(a, e, p) {
     }
     return result;
 }
-const Fp = new PrimeField(17n);
-console.log(Fp.inv(30n));
 //# sourceMappingURL=primeField.js.map

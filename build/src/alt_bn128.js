@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const elliptic_curves_1 = require("./elliptic_curves");
-const primeField_1 = require("./primeField");
-const extensionField_1 = require("./extensionField");
+const primeFields_1 = require("./primeFields");
+const extensionFields_1 = require("./extensionFields");
 const ALT_BN128_ORDER = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 const p = 21888242871839275222246405745257275088696311157297823662689037894645226208583n;
-let Fp = new primeField_1.PrimeField(p);
-let Fp2 = new extensionField_1.ExtensionField(Fp, [1n, 0n, 1n]);
-let Fp12 = new extensionField_1.ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
+let Fp = new primeFields_1.PrimeField(p);
+let Fp2 = new extensionFields_1.ExtensionField(Fp, [1n, 0n, 1n]);
+let Fp12 = new extensionFields_1.ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 const b = 3n;
 const b2 = Fp2.div([3n], [9n, 1n]);
 const b12 = [3n];

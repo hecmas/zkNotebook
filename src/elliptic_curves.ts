@@ -1,5 +1,5 @@
-import { PrimeField } from "./primeField";
-import { ExtensionField } from "./extensionField";
+import { PrimeField } from "./primeFields";
+import { ExtensionField } from "./extensionFields";
 
 export interface Point {
     x: bigint | bigint[];

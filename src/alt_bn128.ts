@@ -1,12 +1,14 @@
 import { EllipticCurve } from "./elliptic_curves";
-import { PrimeField } from "./primeField";
-import { ExtensionField } from "./extensionField";
+import { PrimeField } from "./primeFields";
+import { ExtensionField } from "./extensionFields";
 
 const ALT_BN128_ORDER =
     21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 const p =
     21888242871839275222246405745257275088696311157297823662689037894645226208583n;
 
+
+    
 let Fp = new PrimeField(p);
 let Fp2 = new ExtensionField(Fp, [1n, 0n, 1n]);
 let Fp12 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);

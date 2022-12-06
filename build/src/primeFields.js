@@ -92,4 +92,4 @@ function squareAndMultiply(a, e, p) {
     }
     return result;
 }
-//# sourceMappingURL=primeField.js.map
+//# sourceMappingURL=primeFields.js.map

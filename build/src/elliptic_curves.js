@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EllipticCurve = void 0;
-const primeField_1 = require("./primeField");
-const extensionField_1 = require("./extensionField");
+const primeFields_1 = require("./primeFields");
+const extensionFields_1 = require("./extensionFields");
 // /*
 //     * Elliptic curve over Fp
 //     * y² = x³ + a·x + b
@@ -42,7 +42,7 @@ class EllipticCurve {
             typeof P.y === "bigint" &&
             typeof this.a === "bigint" &&
             typeof this.b === "bigint" &&
-            this.F instanceof primeField_1.PrimeField) {
+            this.F instanceof primeFields_1.PrimeField) {
             const left_side = this.F.exp(P.y, 2n);
             const right_side = this.F.add(this.F.add(this.F.exp(P.x, 3n), this.F.mul(this.a, P.x)), this.b);
             return left_side === right_side;
@@ -51,7 +51,7 @@ class EllipticCurve {
             typeof P.y === "object" &&
             typeof this.a === "object" &&
             typeof this.b === "object" &&
-            this.F instanceof extensionField_1.ExtensionField) {
+            this.F instanceof extensionFields_1.ExtensionField) {
             const left_side = this.F.exp(P.y, 2n);
             const right_side = this.F.add(this.F.add(this.F.exp(P.x, 3n), this.F.mul(this.a, P.x)), this.b);
             return this.F.eq(left_side, right_side);
@@ -75,7 +75,7 @@ class EllipticCurve {
             typeof Q.y === "bigint" &&
             typeof this.a === "bigint" &&
             typeof this.b === "bigint" &&
-            this.F instanceof primeField_1.PrimeField) {
+            this.F instanceof primeFields_1.PrimeField) {
             let m;
             if (P.x === Q.x && P.y === Q.y) {
                 m = this.F.div(this.F.add(this.F.mul(3n, this.F.mul(P.x, P.x)), this.a), this.F.mul(2n, P.y));
@@ -93,7 +93,7 @@ class EllipticCurve {
             typeof Q.y === "object" &&
             typeof this.a === "object" &&
             typeof this.b === "object" &&
-            this.F instanceof extensionField_1.ExtensionField) {
+            this.F instanceof extensionFields_1.ExtensionField) {
             let m;
             if (P.x === Q.x && P.y === Q.y) {
                 m = this.F.div(this.F.add(this.F.mul([3n], this.F.mul(P.x, P.x)), this.a), this.F.mul([2n], P.y));
@@ -112,11 +112,11 @@ class EllipticCurve {
     neg(P) {
         if (this.is_zero(P))
             return this.zero;
-        if (typeof P.y === "bigint" && this.F instanceof primeField_1.PrimeField) {
+        if (typeof P.y === "bigint" && this.F instanceof primeFields_1.PrimeField) {
             return { x: P.x, y: this.F.neg(P.y) };
         }
         else if (typeof P.y === "object" &&
-            this.F instanceof extensionField_1.ExtensionField) {
+            this.F instanceof extensionFields_1.ExtensionField) {
             return { x: P.x, y: this.F.neg(P.y) };
         }
     }
@@ -143,7 +143,7 @@ class EllipticCurve {
             return this.zero;
         if (typeof P.x === "object" &&
             typeof P.y === "object" &&
-            this.F instanceof extensionField_1.ExtensionField) {
+            this.F instanceof extensionFields_1.ExtensionField) {
             // Field isomorphism from Fp[X]/(X²) to Fp[X]/(X² - 18·X + 82)
             let xcoeffs = [
                 this.F.Fp.sub(P.x[0], this.F.Fp.mul(9n, P.x[1])),
@@ -166,7 +166,7 @@ class EllipticCurve {
 }
 exports.EllipticCurve = EllipticCurve;
 const p = 21888242871839275222246405745257275088696311157297823662689037894645226208583n;
-let Fp = new primeField_1.PrimeField(p);
+let Fp = new primeFields_1.PrimeField(p);
 let Ep = new EllipticCurve(0n, 3n, Fp);
 console.log(Ep.is_zero({ x: 3n, y: null }));
 //# sourceMappingURL=elliptic_curves.js.map

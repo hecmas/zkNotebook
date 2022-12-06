@@ -3,3 +3,6 @@
 
 # Installed modules
 node_modules/
+
+# Trash files
+src/*.js

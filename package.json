@@ -1,0 +1,38 @@
+{
+  "name": "vcts",
+  "version": "0.0.1",
+  "description": "Verifiable Computation in Typescript",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "npm test && tsc",
+    "test": "mocha --require ts-node/register tests/*_spec.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hecmas/VCts.git"
+  },
+  "keywords": [
+    "finite",
+    "fields",
+    "elliptic",
+    "curves",
+    "pairings"
+  ],
+  "author": "Héctor Masip Ardevol",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hecmas/VCts/issues"
+  },
+  "homepage": "https://github.com/hecmas/VCts#readme",
+  "devDependencies": {
+    "@types/chai": "^4.3.4",
+    "@types/mocha": "^10.0.1",
+    "chai": "^4.3.7",
+    "mocha": "^10.1.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.3"
+  }
+}

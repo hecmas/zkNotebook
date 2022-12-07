@@ -10,6 +10,7 @@
         "outDir": "build"
     },
     "exclude": [
-        "bin/*"
+        "bin/*",
+        "dev/*"
     ]
 }

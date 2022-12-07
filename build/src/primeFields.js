@@ -82,9 +82,10 @@ function egcd(a, b) {
     return [previous_s, previous_t, previous_r];
 }
 function squareAndMultiply(a, e, p) {
-    let result = a;
+    let result = 1n;
     let binary = e.toString(2);
-    for (let i = 1; i < binary.length; i++) {
+    console.log(binary.length);
+    for (let i = 0; i < binary.length; i++) {
         result = (result * result) % p;
         if (binary[i] === "1") {
             result = (result * a) % p;

@@ -95,9 +95,10 @@ function egcd(a: bigint, b: bigint): bigint[] {
 }
 
 function squareAndMultiply(a: bigint, e: bigint, p: bigint): bigint {
-    let result = a;
+    let result = 1n;
     let binary = e.toString(2);
-    for (let i = 1; i < binary.length; i++) {
+    console.log(binary.length);
+    for (let i = 0; i < binary.length; i++) {
         result = (result * result) % p;
         if (binary[i] === "1") {
             result = (result * a) % p;

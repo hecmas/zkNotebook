@@ -17,7 +17,7 @@ export class PrimeField {
 
     // Basic Arithmetic
     mod(a: bigint): bigint {
-        return a >= 0n ? a % this.p : (a % this.p) + this.p;
+        return a >= 0n ? a % this.p : ((a % this.p) + this.p) % this.p;
     }
 
     add(a: bigint, b: bigint): bigint {
@@ -28,9 +28,9 @@ export class PrimeField {
         return this.mod(a - b);
     }
 
-    // neg(a: bigint): bigint {
-    //     return this.mod(-a);
-    // }
+    neg(a: bigint): bigint {
+        return this.mod(-a);
+    }
 
     // Q: Should this be improved for large integers????
     mul(a: bigint, b: bigint): bigint {
@@ -97,7 +97,6 @@ function egcd(a: bigint, b: bigint): bigint[] {
 function squareAndMultiply(a: bigint, e: bigint, p: bigint): bigint {
     let result = 1n;
     let binary = e.toString(2);
-    console.log(binary.length);
     for (let i = 0; i < binary.length; i++) {
         result = (result * result) % p;
         if (binary[i] === "1") {

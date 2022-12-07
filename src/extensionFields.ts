@@ -1,5 +1,7 @@
 import { PrimeField } from "./primeFields";
 
+// TODO: heredar de PrimeField??
+// TODO: hereder de una clase para polinomios?
 export class ExtensionField {
     readonly Fp: PrimeField;
     readonly modulus_coeffs: bigint[];
@@ -43,22 +45,23 @@ export class ExtensionField {
 
     // Basic Arithmetic
     mod(a: bigint[]): bigint[] {
-        let dega = degree(a);
+        const dega = degree(a);
         if (dega < this.degree) {
-            const c = new Array<bigint>(dega+1);
+            const c = new Array<bigint>(dega + 1);
             for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.mod(a[i]);
             }
-            return c;
+            const degc = degree(c);
+            return c.slice(0, degc + 1);
         }
 
-        let [, r] = euclidean_division(a, this.modulus_coeffs, this);
+        let [, r] = euclidean_division(a, this.modulus_coeffs, this.Fp);
         return r;
     }
 
     add(a: bigint[], b: bigint[]): bigint[] {
-        let dega = degree(a);
-        let degb = degree(b);
+        const dega = degree(a);
+        const degb = degree(b);
         let maxdeg = Math.max(dega, degb);
         const c = new Array<bigint>(maxdeg + 1);
         for (let i = 0; i < maxdeg + 1; i++) {
@@ -67,6 +70,14 @@ export class ExtensionField {
             c[i] = this.Fp.mod(ai + bi);
         }
 
+        return this.mod(c);
+    }
+
+    neg(a: bigint[]): bigint[] {
+        const c = new Array<bigint>(degree(a) + 1);
+        for (let i = 0; i < degree(a) + 1; i++) {
+            c[i] = this.Fp.neg(a[i]);
+        }
         return this.mod(c);
     }
 
@@ -89,35 +100,29 @@ export class ExtensionField {
     //     return c;
     // }
 
-    // neg(a: bigint[]): bigint[] {
-    //     const c = new Array<bigint>(degree(a) + 1);
-    //     for (let i = 0; i < degree(a) + 1; i++) {
-    //         c[i] = this.Fp.neg(a[i]);
-    //     }
-    //     return this.mod(c);
-    // }
-
     mul(a: bigint[], b: bigint[]): bigint[] {
-        if (degree(a) === 0) {
-            if (degree(b) === 0) {
+        const dega = degree(a);
+        const degb = degree(b);
+        if (dega === 0) {
+            if (degb === 0) {
                 return [this.Fp.mul(a[0], b[0])];
             } else {
-                const c = new Array<bigint>(degree(b) + 1);
-                for (let i = 0; i < degree(b) + 1; i++) {
+                const c = new Array<bigint>(degb + 1);
+                for (let i = 0; i < degb + 1; i++) {
                     c[i] = this.Fp.mul(a[0], b[i]);
                 }
                 return this.mod(c);
             }
-        } else if (degree(b) === 0) {
-            const c = new Array<bigint>(degree(a) + 1);
-            for (let i = 0; i < degree(a) + 1; i++) {
+        } else if (degb === 0) {
+            const c = new Array<bigint>(dega + 1);
+            for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.mul(a[i], b[0]);
             }
             return this.mod(c);
         } else {
-            const c = new Array<bigint>(degree(a) + degree(b) + 1).fill(0n);
-            for (let i = 0; i < degree(a) + 1; i++) {
-                for (let j = 0; j < degree(b) + 1; j++) {
+            const c = new Array<bigint>(dega + degb + 1).fill(0n);
+            for (let i = 0; i < dega + 1; i++) {
+                for (let j = 0; j < degb + 1; j++) {
                     c[i + j] = this.Fp.add(c[i + j], this.Fp.mul(a[i], b[j]));
                 }
             }
@@ -126,16 +131,32 @@ export class ExtensionField {
     }
 
     inv(a: bigint[]): bigint[] {
-        if (this.eq(a, this.zero)) throw new Error("Zero has no multiplicative inverse");
-        const [, y,] = egcd(this.modulus_coeffs, a, this);
+        if (this.eq(a, this.zero))
+            throw new Error("Zero has no multiplicative inverse");
+        const [, y] = egcd(this.modulus_coeffs, a, this);
         return y;
     }
 
     div(a: bigint[], b: bigint[]): bigint[] {
-        if (degree(b) === 0) {
-            if (b[0] === 0n) throw new Error('Division by zero');
-            const c = new Array<bigint>(this.degree);
-            for (let i = 0; i < this.degree; i++) {
+        const dega = degree(a);
+        const degb = degree(b);
+        if (dega < degb)
+            throw new Error("Degree of a must be greater than degree of b");
+
+        if (dega === 0) {
+            if (degb === 0) {
+                return [this.Fp.div(a[0], b[0])];
+            } else {
+                const c = new Array<bigint>(degb + 1);
+                for (let i = 0; i < degb + 1; i++) {
+                    c[i] = this.Fp.mul(a[0], b[i]);
+                }
+                return this.mod(c);
+            }
+        } else if (degb === 0) {
+            if (b[0] === 0n) throw new Error("Division by zero");
+            const c = new Array<bigint>(dega + 1);
+            for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.div(a[i], b[0]);
             }
             return this.mod(c);
@@ -176,28 +197,31 @@ function degree(a: bigint[]): number {
 function euclidean_division(
     a: bigint[],
     b: bigint[],
-    Fq: ExtensionField
+    Fp: PrimeField
 ): bigint[][] {
-    let dega = degree(a);
-    let degb = degree(b);
-    let q = new Array<bigint>(a.length).fill(0n);
+    const dega = degree(a);
+    const degb = degree(b);
+    let q = new Array<bigint>(dega - degb + 1).fill(0n);
     let r = a.slice();
     for (let i = dega - degb; i >= 0; i--) {
-        q[i] = Fq.Fp.div(r[i + degb], b[degb]);
-        for (let j = 0; j < degb+1; j++) {
-            r[i + j] = Fq.Fp.sub(r[i + j], Fq.Fp.mul(q[i], b[j]));
+        q[i] = Fp.div(r[i + degb], b[degb]);
+        for (let j = 0; j < degb + 1; j++) {
+            r[i + j] = Fp.sub(r[i + j], Fp.mul(q[i], b[j]));
         }
     }
+
+    const degr = degree(r);
+    r = r.slice(0, degr + 1);
     return [q, r];
 }
 
 function egcd(a: bigint[], b: bigint[], Fq: ExtensionField): bigint[][] {
-    let [old_r, r] = [a,b];
+    let [old_r, r] = [a, b];
     let [old_s, s] = [Fq.one, Fq.zero];
     let [old_t, t] = [Fq.zero, Fq.one];
 
     while (Fq.neq(r, Fq.zero)) {
-        const [q,] = euclidean_division(old_r, r, Fq);
+        const [q] = euclidean_division(old_r, r, Fq.Fp);
         let old_rr = old_r.slice();
         let old_ss = old_s.slice();
         let old_tt = old_t.slice();
@@ -220,10 +244,14 @@ function egcd(a: bigint[], b: bigint[], Fq: ExtensionField): bigint[][] {
         old_r[i] = Fq.Fp.div(old_r[i], old_r[0]);
     }
 
-    return [old_s, old_t, old_r]
+    return [old_s, old_t, old_r];
 }
 
-function squareAndMultiply(base: bigint[], exponent: bigint, Fq: ExtensionField): bigint[] {
+function squareAndMultiply(
+    base: bigint[],
+    exponent: bigint,
+    Fq: ExtensionField
+): bigint[] {
     let result = base.slice();
     let binary = exponent.toString(2);
     for (let i = 1; i < binary.length; i++) {
@@ -239,7 +267,9 @@ function squareAndMultiply(base: bigint[], exponent: bigint, Fq: ExtensionField)
 // let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 // console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
 
-// let Fp = new PrimeField(17n);
-// let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
-// let result = Fp2.inv([-16n, -14n]);
-// console.log(result);
+// let Fp = new PrimeField(3n);
+// let Fp2 = new ExtensionField(Fp, [0n, 0n, 0n, 0n, 0n, 1n]);
+// let result = Fp2.inv([1n, 1n]);
+// console.log(Fp2.div([-1n, 0n, 1n], [1n, 1n]));
+// console.log(Fp2.mod([0n, 0n, 6n, 0n, 0n]));
+// console.log(Fp.mod(-18n));

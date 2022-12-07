@@ -4,8 +4,8 @@
 # Installed modules
 node_modules/
 
-# Trash files
-src/*.js
+# Test generated files
+build/tests/
 
 # Dev files
 dev/

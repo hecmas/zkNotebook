@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExtensionField = void 0;
+const primeFields_1 = require("./primeFields");
+// TODO: heredar de PrimeField??
+// TODO: hereder de una clase para polinomios?
 class ExtensionField {
     Fp;
     modulus_coeffs;
@@ -39,20 +42,21 @@ class ExtensionField {
     }
     // Basic Arithmetic
     mod(a) {
-        let dega = degree(a);
+        const dega = degree(a);
         if (dega < this.degree) {
             const c = new Array(dega + 1);
             for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.mod(a[i]);
             }
-            return c;
+            const degc = degree(c);
+            return c.slice(0, degc + 1);
         }
-        let [, r] = euclidean_division(a, this.modulus_coeffs, this);
+        let [, r] = euclidean_division(a, this.modulus_coeffs, this.Fp);
         return r;
     }
     add(a, b) {
-        let dega = degree(a);
-        let degb = degree(b);
+        const dega = degree(a);
+        const degb = degree(b);
         let maxdeg = Math.max(dega, degb);
         const c = new Array(maxdeg + 1);
         for (let i = 0; i < maxdeg + 1; i++) {
@@ -62,10 +66,6 @@ class ExtensionField {
         }
         return this.mod(c);
     }
-    sub(a, b) {
-        const c = this.add(a, this.neg(b));
-        return c;
-    }
     neg(a) {
         const c = new Array(degree(a) + 1);
         for (let i = 0; i < degree(a) + 1; i++) {
@@ -73,30 +73,48 @@ class ExtensionField {
         }
         return this.mod(c);
     }
+    sub(a, b) {
+        const dega = degree(a);
+        const degb = degree(b);
+        const maxdeg = Math.max(dega, degb);
+        const c = new Array(maxdeg + 1);
+        for (let i = 0; i < maxdeg + 1; i++) {
+            let ai = i < dega + 1 ? a[i] : 0n;
+            let bi = i < degb + 1 ? b[i] : 0n;
+            c[i] = this.Fp.mod(ai - bi);
+        }
+        return this.mod(c);
+    }
+    // sub(a: bigint[], b: bigint[]): bigint[] {
+    //     const c = this.add(a, this.neg(b));
+    //     return c;
+    // }
     mul(a, b) {
-        if (degree(a) === 0) {
-            if (degree(b) === 0) {
+        const dega = degree(a);
+        const degb = degree(b);
+        if (dega === 0) {
+            if (degb === 0) {
                 return [this.Fp.mul(a[0], b[0])];
             }
             else {
-                const c = new Array(degree(b) + 1);
-                for (let i = 0; i < degree(b) + 1; i++) {
+                const c = new Array(degb + 1);
+                for (let i = 0; i < degb + 1; i++) {
                     c[i] = this.Fp.mul(a[0], b[i]);
                 }
                 return this.mod(c);
             }
         }
-        else if (degree(b) === 0) {
-            const c = new Array(degree(a) + 1);
-            for (let i = 0; i < degree(a) + 1; i++) {
+        else if (degb === 0) {
+            const c = new Array(dega + 1);
+            for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.mul(a[i], b[0]);
             }
             return this.mod(c);
         }
         else {
-            const c = new Array(degree(a) + degree(b) + 1).fill(0n);
-            for (let i = 0; i < degree(a) + 1; i++) {
-                for (let j = 0; j < degree(b) + 1; j++) {
+            const c = new Array(dega + degb + 1).fill(0n);
+            for (let i = 0; i < dega + 1; i++) {
+                for (let j = 0; j < degb + 1; j++) {
                     c[i + j] = this.Fp.add(c[i + j], this.Fp.mul(a[i], b[j]));
                 }
             }
@@ -106,15 +124,31 @@ class ExtensionField {
     inv(a) {
         if (this.eq(a, this.zero))
             throw new Error("Zero has no multiplicative inverse");
-        const [, y,] = egcd(this.modulus_coeffs, a, this);
+        const [, y] = egcd(this.modulus_coeffs, a, this);
         return y;
     }
     div(a, b) {
-        if (degree(b) === 0) {
+        const dega = degree(a);
+        const degb = degree(b);
+        if (dega < degb)
+            throw new Error("Degree of a must be greater than degree of b");
+        if (dega === 0) {
+            if (degb === 0) {
+                return [this.Fp.div(a[0], b[0])];
+            }
+            else {
+                const c = new Array(degb + 1);
+                for (let i = 0; i < degb + 1; i++) {
+                    c[i] = this.Fp.mul(a[0], b[i]);
+                }
+                return this.mod(c);
+            }
+        }
+        else if (degb === 0) {
             if (b[0] === 0n)
-                throw new Error('Division by zero');
-            const c = new Array(this.degree);
-            for (let i = 0; i < this.degree; i++) {
+                throw new Error("Division by zero");
+            const c = new Array(dega + 1);
+            for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.div(a[i], b[0]);
             }
             return this.mod(c);
@@ -148,17 +182,19 @@ function degree(a) {
     }
     return d;
 }
-function euclidean_division(a, b, Fq) {
-    let dega = degree(a);
-    let degb = degree(b);
-    let q = new Array(a.length).fill(0n);
+function euclidean_division(a, b, Fp) {
+    const dega = degree(a);
+    const degb = degree(b);
+    let q = new Array(dega - degb + 1).fill(0n);
     let r = a.slice();
     for (let i = dega - degb; i >= 0; i--) {
-        q[i] = Fq.Fp.div(r[i + degb], b[degb]);
+        q[i] = Fp.div(r[i + degb], b[degb]);
         for (let j = 0; j < degb + 1; j++) {
-            r[i + j] = Fq.Fp.sub(r[i + j], Fq.Fp.mul(q[i], b[j]));
+            r[i + j] = Fp.sub(r[i + j], Fp.mul(q[i], b[j]));
         }
     }
+    const degr = degree(r);
+    r = r.slice(0, degr + 1);
     return [q, r];
 }
 function egcd(a, b, Fq) {
@@ -166,7 +202,7 @@ function egcd(a, b, Fq) {
     let [old_s, s] = [Fq.one, Fq.zero];
     let [old_t, t] = [Fq.zero, Fq.one];
     while (Fq.neq(r, Fq.zero)) {
-        const [q,] = euclidean_division(old_r, r, Fq);
+        const [q] = euclidean_division(old_r, r, Fq.Fp);
         let old_rr = old_r.slice();
         let old_ss = old_s.slice();
         let old_tt = old_t.slice();
@@ -202,8 +238,10 @@ function squareAndMultiply(base, exponent, Fq) {
 // let Fp = new PrimeField(21888242871839275222246405745257275088696311157297823662689037894645226208583n);
 // let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 // console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
-// let Fp = new PrimeField(17n);
-// let Fp2 = new ExtensionField(Fp, [1n, 2n, 3n]);
-// let result = Fp2.inv([-16n, -14n]);
-// console.log(result);
+let Fp = new primeFields_1.PrimeField(3n);
+let Fp2 = new ExtensionField(Fp, [0n, 0n, 0n, 0n, 0n, 1n]);
+// let result = Fp2.inv([1n, 1n]);
+// console.log(Fp2.div([-1n, 0n, 1n], [1n, 1n]));
+// console.log(Fp2.mod([0n, 0n, 6n, 0n, 0n]));
+console.log(Fp.mod(-18n));
 //# sourceMappingURL=extensionFields.js.map

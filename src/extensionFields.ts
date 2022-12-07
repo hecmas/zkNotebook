@@ -71,17 +71,31 @@ export class ExtensionField {
     }
 
     sub(a: bigint[], b: bigint[]): bigint[] {
-        const c = this.add(a, this.neg(b));
-        return c;
-    }
-
-    neg(a: bigint[]): bigint[] {
-        const c = new Array<bigint>(degree(a) + 1);
-        for (let i = 0; i < degree(a) + 1; i++) {
-            c[i] = this.Fp.neg(a[i]);
+        const dega = degree(a);
+        const degb = degree(b);
+        const maxdeg = Math.max(dega, degb);
+        const c = new Array<bigint>(maxdeg + 1);
+        for (let i = 0; i < maxdeg + 1; i++) {
+            let ai = i < dega + 1 ? a[i] : 0n;
+            let bi = i < degb + 1 ? b[i] : 0n;
+            c[i] = this.Fp.mod(ai - bi);
         }
+
         return this.mod(c);
     }
+
+    // sub(a: bigint[], b: bigint[]): bigint[] {
+    //     const c = this.add(a, this.neg(b));
+    //     return c;
+    // }
+
+    // neg(a: bigint[]): bigint[] {
+    //     const c = new Array<bigint>(degree(a) + 1);
+    //     for (let i = 0; i < degree(a) + 1; i++) {
+    //         c[i] = this.Fp.neg(a[i]);
+    //     }
+    //     return this.mod(c);
+    // }
 
     mul(a: bigint[], b: bigint[]): bigint[] {
         if (degree(a) === 0) {

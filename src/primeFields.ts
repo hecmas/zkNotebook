@@ -28,9 +28,9 @@ export class PrimeField {
         return this.mod(a - b);
     }
 
-    neg(a: bigint): bigint {
-        return this.mod(-a);
-    }
+    // neg(a: bigint): bigint {
+    //     return this.mod(-a);
+    // }
 
     // Q: Should this be improved for large integers????
     mul(a: bigint, b: bigint): bigint {

@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExtensionField = void 0;
-const primeFields_1 = require("./primeFields");
 // TODO: heredar de PrimeField??
 // TODO: hereder de una clase para polinomios?
 class ExtensionField {
@@ -238,10 +237,10 @@ function squareAndMultiply(base, exponent, Fq) {
 // let Fp = new PrimeField(21888242871839275222246405745257275088696311157297823662689037894645226208583n);
 // let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 // console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
-let Fp = new primeFields_1.PrimeField(3n);
-let Fp2 = new ExtensionField(Fp, [0n, 0n, 0n, 0n, 0n, 1n]);
+// let Fp = new PrimeField(3n);
+// let Fp2 = new ExtensionField(Fp, [0n, 0n, 0n, 0n, 0n, 1n]);
 // let result = Fp2.inv([1n, 1n]);
 // console.log(Fp2.div([-1n, 0n, 1n], [1n, 1n]));
 // console.log(Fp2.mod([0n, 0n, 6n, 0n, 0n]));
-console.log(Fp.mod(-18n));
+// console.log(Fp.mod(-18n));
 //# sourceMappingURL=extensionFields.js.map

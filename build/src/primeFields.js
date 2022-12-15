@@ -16,7 +16,7 @@ class PrimeField {
     }
     // Basic Arithmetic
     mod(a) {
-        return a >= 0n ? a % this.p : (a % this.p) + this.p;
+        return a >= 0n ? a % this.p : ((a % this.p) + this.p) % this.p;
     }
     add(a, b) {
         return this.mod(a + b);

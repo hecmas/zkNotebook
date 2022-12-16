@@ -2,6 +2,7 @@ import { PrimeField } from "./primeFields";
 
 // TODO: heredar de PrimeField??
 // TODO: hereder de una clase para polinomios?
+// TOOD: Finite fields as a particular case of Extension Fields??
 export class ExtensionField {
     readonly Fp: PrimeField;
     readonly modulus_coeffs: bigint[];

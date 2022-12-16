@@ -15,6 +15,16 @@ export class PrimeField {
         return 1n;
     }
 
+    // Comparators
+    eq(a: bigint, b: bigint): boolean {
+        return this.mod(a) === this.mod(b);
+    }
+
+    neq(a: bigint, b: bigint): boolean {
+        return !this.eq(a, b);
+    }
+
+
     // Basic Arithmetic
     mod(a: bigint): bigint {
         return a >= 0n ? a % this.p : ((a % this.p) + this.p) % this.p;

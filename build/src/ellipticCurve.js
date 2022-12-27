@@ -1,8 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EllipticCurve = void 0;
-const primeField_1 = require("./primeField");
-const extensionField_1 = require("./extensionField");
 // /*
 //     * Elliptic curve over Fp
 //     * y² = x³ + a·x + b
@@ -15,8 +13,8 @@ class EllipticCurve {
     b;
     F;
     constructor(a, b, field) {
-        const firstSummand = field.mul(4n, field.exp(a, 3n));
-        const secondSummand = field.mul(27n, field.exp(b, 2n));
+        const firstSummand = field.mul([4n], field.exp(a, 3n));
+        const secondSummand = field.mul([27n], field.exp(b, 2n));
         const sum = field.add(firstSummand, secondSummand);
         if (field.eq(sum, field.zero)) {
             throw new Error("The curve is singular, choose another a and b");
@@ -92,9 +90,4 @@ class EllipticCurve {
     }
 }
 exports.EllipticCurve = EllipticCurve;
-const p = 21888242871839275222246405745257275088696311157297823662689037894645226208583n;
-const Fp = new primeField_1.PrimeField(p);
-const Fp2 = new extensionField_1.ExtensionField(Fp, [1n, 0n, 1n]);
-const Ep = new EllipticCurve(0n, 3n, Fp);
-console.log(Ep.is_zero({ x: 3n, y: null }));
 //# sourceMappingURL=ellipticCurve.js.map

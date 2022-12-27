@@ -14,14 +14,15 @@ interface Point<U> {
 //     * 4·a³ + 27·b² != 0
 //     * p is prime
 //     */
-export class EllipticCurve<T extends FiniteField<U>, U> {
+export class EllipticCurve<T extends FiniteField<U>, U extends bigint | bigint[]> {
     readonly a: U;
     readonly b: U;
     readonly F: T;
 
     constructor(a: U, b: U, field: T) {
-        const firstSummand = field.mul(4n as U, field.exp(a, 3n));
-        const secondSummand = field.mul(27n as U, field.exp(b, 2n));
+        //TODO: Fix thie problematic with 4n and 27n
+        const firstSummand = field.mul([4n] as U, field.exp(a, 3n));
+        const secondSummand = field.mul([27n] as U, field.exp(b, 2n));
         const sum = field.add(firstSummand, secondSummand);
         if (field.eq(sum, field.zero)) {
             throw new Error("The curve is singular, choose another a and b");

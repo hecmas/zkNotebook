@@ -139,8 +139,6 @@ export class ExtensionField implements FiniteField<bigint[]> {
     div(a: bigint[], b: bigint[]): bigint[] {
         const dega = degree(a);
         const degb = degree(b);
-        if (dega < degb)
-            throw new Error("Degree of a must be greater than degree of b");
 
         if (dega === 0) {
             if (degb === 0) {

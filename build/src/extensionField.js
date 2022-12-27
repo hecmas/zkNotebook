@@ -127,8 +127,6 @@ class ExtensionField {
     div(a, b) {
         const dega = degree(a);
         const degb = degree(b);
-        if (dega < degb)
-            throw new Error("Degree of a must be greater than degree of b");
         if (dega === 0) {
             if (degb === 0) {
                 return [this.Fp.div(a[0], b[0])];

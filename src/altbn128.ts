@@ -37,7 +37,6 @@ const G2 = {
 
 // Points are over their respective curves
 console.log(Ep.is_on_curve(G1));
-const result = Ep2.is_on_curve(G2);
 console.log(Ep2.is_on_curve(G2));
 
 let w = [0n,1n];

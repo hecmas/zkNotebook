@@ -140,16 +140,8 @@ export class ExtensionField implements FiniteField<bigint[]> {
         const dega = degree(a);
         const degb = degree(b);
 
-        if (dega === 0) {
-            if (degb === 0) {
-                return [this.Fp.div(a[0], b[0])];
-            } else {
-                const c = new Array<bigint>(degb + 1);
-                for (let i = 0; i < degb + 1; i++) {
-                    c[i] = this.Fp.mul(a[0], b[i]);
-                }
-                return this.mod(c);
-            }
+        if (dega === 0 && degb === 0) {
+            return [this.Fp.div(a[0], b[0])];
         } else if (degb === 0) {
             if (b[0] === 0n) throw new Error("Division by zero");
             const c = new Array<bigint>(dega + 1);

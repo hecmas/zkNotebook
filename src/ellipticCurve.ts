@@ -14,15 +14,16 @@ interface Point<U> {
 //     * 4·a³ + 27·b² != 0
 //     * p is prime
 //     */
-export class EllipticCurve<T extends FiniteField<U>, U extends bigint | bigint[]> {
+export class EllipticCurve<T extends FiniteField<U>, U> {
     readonly a: U;
     readonly b: U;
     readonly F: T;
 
     constructor(a: U, b: U, field: T) {
-        //TODO: Fix thie problematic with 4n and 27n
-        const firstSummand = field.mul([4n] as U, field.exp(a, 3n));
-        const secondSummand = field.mul([27n] as U, field.exp(b, 2n));
+        const four = field instanceof PrimeField ? 4n : [4n];
+        const ts = field instanceof PrimeField ? 27n : [27n];
+        const firstSummand = field.mul(four as U, field.exp(a, 3n));
+        const secondSummand = field.mul(ts as U, field.exp(b, 2n));
         const sum = field.add(firstSummand, secondSummand);
         if (field.eq(sum, field.zero)) {
             throw new Error("The curve is singular, choose another a and b");
@@ -72,10 +73,12 @@ export class EllipticCurve<T extends FiniteField<U>, U extends bigint | bigint[]
         }
 
         let m: U;
+        const three = this.F instanceof PrimeField ? 3n : [3n];
+        const two = this.F instanceof PrimeField ? 2n : [2n];
         if (P.x === Q.x && P.y === Q.y) {
             m = this.F.div(
-                this.F.add(this.F.mul(3n as U, this.F.mul(P.x, P.x)), this.a),
-                this.F.mul(2n as U, P.y)
+                this.F.add(this.F.mul(three as U, this.F.mul(P.x, P.x)), this.a),
+                this.F.mul(two as U, P.y)
             );
         } else {
             m = this.F.div(this.F.sub(Q.y, P.y), this.F.sub(Q.x, P.x));

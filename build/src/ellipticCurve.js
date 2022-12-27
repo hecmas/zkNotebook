@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EllipticCurve = void 0;
+const primeField_1 = require("./primeField");
 // /*
 //     * Elliptic curve over Fp
 //     * y² = x³ + a·x + b
@@ -13,8 +14,10 @@ class EllipticCurve {
     b;
     F;
     constructor(a, b, field) {
-        const firstSummand = field.mul([4n], field.exp(a, 3n));
-        const secondSummand = field.mul([27n], field.exp(b, 2n));
+        const four = field instanceof primeField_1.PrimeField ? 4n : [4n];
+        const ts = field instanceof primeField_1.PrimeField ? 27n : [27n];
+        const firstSummand = field.mul(four, field.exp(a, 3n));
+        const secondSummand = field.mul(ts, field.exp(b, 2n));
         const sum = field.add(firstSummand, secondSummand);
         if (field.eq(sum, field.zero)) {
             throw new Error("The curve is singular, choose another a and b");
@@ -53,8 +56,10 @@ class EllipticCurve {
             }
         }
         let m;
+        const three = this.F instanceof primeField_1.PrimeField ? 3n : [3n];
+        const two = this.F instanceof primeField_1.PrimeField ? 2n : [2n];
         if (P.x === Q.x && P.y === Q.y) {
-            m = this.F.div(this.F.add(this.F.mul(3n, this.F.mul(P.x, P.x)), this.a), this.F.mul(2n, P.y));
+            m = this.F.div(this.F.add(this.F.mul(three, this.F.mul(P.x, P.x)), this.a), this.F.mul(two, P.y));
         }
         else {
             m = this.F.div(this.F.sub(Q.y, P.y), this.F.sub(Q.x, P.x));

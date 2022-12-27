@@ -1,21 +1,19 @@
-import { PrimeField } from "./primeFields";
+import { PrimeField } from "./primeField";
+import { FiniteField } from "./finiteField";
 
-// TODO: heredar de PrimeField??
-// TODO: hereder de una clase para polinomios?
-// TOOD: Finite fields as a particular case of Extension Fields??
-export class ExtensionField {
+export class ExtensionField implements FiniteField<bigint[]> {
     readonly Fp: PrimeField;
-    readonly modulus_coeffs: bigint[];
+    readonly modulusCoeffs: bigint[];
     readonly degree: number;
 
     // Constructor
-    constructor(_Fp: PrimeField, _modulus_coeffs: bigint[]) {
+    constructor(Fp: PrimeField, modulusCoeffs: bigint[]) {
         // The prime field over which the extension is defined
-        this.Fp = _Fp;
+        this.Fp = Fp;
         // The coefficients of the modulus
-        this.modulus_coeffs = _modulus_coeffs;
+        this.modulusCoeffs = modulusCoeffs;
         // The degree of the extension
-        this.degree = _modulus_coeffs.length - 1;
+        this.degree = modulusCoeffs.length - 1;
     }
 
     // Public Accessors
@@ -56,7 +54,7 @@ export class ExtensionField {
             return c.slice(0, degc + 1);
         }
 
-        let [, r] = euclidean_division(a, this.modulus_coeffs, this.Fp);
+        let [, r] = euclidean_division(a, this.modulusCoeffs, this.Fp);
         return r;
     }
 
@@ -134,7 +132,7 @@ export class ExtensionField {
     inv(a: bigint[]): bigint[] {
         if (this.eq(a, this.zero))
             throw new Error("Zero has no multiplicative inverse");
-        const [, y] = egcd(this.modulus_coeffs, a, this);
+        const [, y] = egcd(this.modulusCoeffs, a, this);
         return y;
     }
 
@@ -263,14 +261,3 @@ function squareAndMultiply(
     }
     return result;
 }
-
-// let Fp = new PrimeField(21888242871839275222246405745257275088696311157297823662689037894645226208583n);
-// let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
-// console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
-
-// let Fp = new PrimeField(3n);
-// let Fp2 = new ExtensionField(Fp, [0n, 0n, 0n, 0n, 0n, 1n]);
-// let result = Fp2.inv([1n, 1n]);
-// console.log(Fp2.div([-1n, 0n, 1n], [1n, 1n]));
-// console.log(Fp2.mod([0n, 0n, 6n, 0n, 0n]));
-// console.log(Fp.mod(-18n));

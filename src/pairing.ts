@@ -1,4 +1,4 @@
-import { Point, EllipticCurve } from "./elliptic_curves";
+// import { Point, EllipticCurve } from "./elliptic_curves";
 
 const ATE_LOOP_COUNT = 29793968203157093288;
 const LOG_ATE_LOOP_COUNT = 63;

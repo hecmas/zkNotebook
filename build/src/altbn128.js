@@ -1,19 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const elliptic_curves_1 = require("./elliptic_curves");
-const primeFields_1 = require("./primeFields");
-const extensionFields_1 = require("./extensionFields");
+const ellipticCurve_1 = require("./ellipticCurve");
+const primeField_1 = require("./primeField");
+const extensionField_1 = require("./extensionField");
 const ALT_BN128_ORDER = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 const p = 21888242871839275222246405745257275088696311157297823662689037894645226208583n;
-let Fp = new primeFields_1.PrimeField(p);
-let Fp2 = new extensionFields_1.ExtensionField(Fp, [1n, 0n, 1n]);
-let Fp12 = new extensionFields_1.ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
+let Fp = new primeField_1.PrimeField(p);
+let Fp2 = new extensionField_1.ExtensionField(Fp, [1n, 0n, 1n]);
+let Fp12 = new extensionField_1.ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 const b = 3n;
-const b2 = Fp2.div([3n], [9n, 1n]);
+const b2 = Fp2.mul([3n], Fp2.inv([9n, 1n]));
 const b12 = [3n];
-let Ep = new elliptic_curves_1.EllipticCurve(0n, b, Fp);
-let Ep2 = new elliptic_curves_1.EllipticCurve([0n], b2, Fp2);
-let Ep12 = new elliptic_curves_1.EllipticCurve([0n], b12, Fp12);
+let Ep = new ellipticCurve_1.EllipticCurve(0n, b, Fp);
+let Ep2 = new ellipticCurve_1.EllipticCurve([0n], b2, Fp2);
+let Ep12 = new ellipticCurve_1.EllipticCurve([0n], b12, Fp12);
 // Generator for curve over Fp
 const G1 = { x: 1n, y: 2n };
 // Generator for twisted curve over Fp²
@@ -34,7 +34,7 @@ let w = [0n, 1n];
 // console.log(Fp2.inv(w));
 let w2 = Fp12.exp(w, 2n);
 let w3 = Fp12.exp(w, 3n);
-let G12 = Ep12.twist(G2, w2, w3);
-// Check that the twist creates a point that is on the curve
-console.log(Ep12.is_on_curve(G12));
-//# sourceMappingURL=alt_bn128.js.map
+// let G12 = Ep12.twist(G2, w2, w3);
+// // Check that the twist creates a point that is on the curve
+// console.log(Ep12.is_on_curve(G12));
+//# sourceMappingURL=altbn128.js.map

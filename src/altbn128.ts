@@ -1,6 +1,6 @@
-import { EllipticCurve } from "./elliptic_curves";
-import { PrimeField } from "./primeFields";
-import { ExtensionField } from "./extensionFields";
+import { EllipticCurve } from "./ellipticCurve";
+import { PrimeField } from "./primeField";
+import { ExtensionField } from "./extensionField";
 
 const ALT_BN128_ORDER =
     21888242871839275222246405745257275088548364400416034343698204186575808495617n;
@@ -14,7 +14,7 @@ let Fp2 = new ExtensionField(Fp, [1n, 0n, 1n]);
 let Fp12 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
 
 const b = 3n;
-const b2 = Fp2.div([3n], [9n, 1n]);
+const b2 = Fp2.mul([3n], Fp2.inv([9n, 1n]));
 const b12 = [3n];
 
 let Ep = new EllipticCurve(0n, b, Fp);
@@ -44,6 +44,6 @@ let w = [0n,1n];
 let w2 = Fp12.exp(w, 2n);
 let w3 = Fp12.exp(w, 3n);
 
-let G12 = Ep12.twist(G2, w2, w3);
-// Check that the twist creates a point that is on the curve
-console.log(Ep12.is_on_curve(G12));
+// let G12 = Ep12.twist(G2, w2, w3);
+// // Check that the twist creates a point that is on the curve
+// console.log(Ep12.is_on_curve(G12));

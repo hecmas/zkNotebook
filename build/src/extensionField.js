@@ -1,20 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExtensionField = void 0;
-// TODO: heredar de PrimeField??
-// TODO: hereder de una clase para polinomios?
 class ExtensionField {
     Fp;
-    modulus_coeffs;
+    modulusCoeffs;
     degree;
     // Constructor
-    constructor(_Fp, _modulus_coeffs) {
+    constructor(Fp, modulusCoeffs) {
         // The prime field over which the extension is defined
-        this.Fp = _Fp;
+        this.Fp = Fp;
         // The coefficients of the modulus
-        this.modulus_coeffs = _modulus_coeffs;
+        this.modulusCoeffs = modulusCoeffs;
         // The degree of the extension
-        this.degree = _modulus_coeffs.length - 1;
+        this.degree = modulusCoeffs.length - 1;
     }
     // Public Accessors
     get zero() {
@@ -50,7 +48,7 @@ class ExtensionField {
             const degc = degree(c);
             return c.slice(0, degc + 1);
         }
-        let [, r] = euclidean_division(a, this.modulus_coeffs, this.Fp);
+        let [, r] = euclidean_division(a, this.modulusCoeffs, this.Fp);
         return r;
     }
     add(a, b) {
@@ -123,7 +121,7 @@ class ExtensionField {
     inv(a) {
         if (this.eq(a, this.zero))
             throw new Error("Zero has no multiplicative inverse");
-        const [, y] = egcd(this.modulus_coeffs, a, this);
+        const [, y] = egcd(this.modulusCoeffs, a, this);
         return y;
     }
     div(a, b) {
@@ -234,13 +232,4 @@ function squareAndMultiply(base, exponent, Fq) {
     }
     return result;
 }
-// let Fp = new PrimeField(21888242871839275222246405745257275088696311157297823662689037894645226208583n);
-// let Fp2 = new ExtensionField(Fp, [82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]);
-// console.log(Fp2.mod([82n, 0n, 0n, 0n, 0n, 0n, -18n, 0n, 0n, 0n, 0n, 0n, 1n]));
-// let Fp = new PrimeField(3n);
-// let Fp2 = new ExtensionField(Fp, [0n, 0n, 0n, 0n, 0n, 1n]);
-// let result = Fp2.inv([1n, 1n]);
-// console.log(Fp2.div([-1n, 0n, 1n], [1n, 1n]));
-// console.log(Fp2.mod([0n, 0n, 6n, 0n, 0n]));
-// console.log(Fp.mod(-18n));
-//# sourceMappingURL=extensionFields.js.map
+//# sourceMappingURL=extensionField.js.map

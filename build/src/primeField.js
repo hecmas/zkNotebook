@@ -4,8 +4,8 @@ exports.PrimeField = void 0;
 class PrimeField {
     p;
     // Constructor
-    constructor(_p) {
-        this.p = _p;
+    constructor(p) {
+        this.p = p;
     }
     // Public Accessors
     get zero() {
@@ -13,6 +13,13 @@ class PrimeField {
     }
     get one() {
         return 1n;
+    }
+    // Comparators
+    eq(a, b) {
+        return this.mod(a) === this.mod(b);
+    }
+    neq(a, b) {
+        return !this.eq(a, b);
     }
     // Basic Arithmetic
     mod(a) {
@@ -92,4 +99,4 @@ function squareAndMultiply(a, e, p) {
     }
     return result;
 }
-//# sourceMappingURL=primeFields.js.map
+//# sourceMappingURL=primeField.js.map

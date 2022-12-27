@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { PrimeField } from "../src/primeFields";
-import { ExtensionField } from "../src/extensionFields";
+import { PrimeField } from "../src/primeField";
+import { ExtensionField } from "../src/extensionField";
 
 let Fp: PrimeField;
 let Fq: ExtensionField;

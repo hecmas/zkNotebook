@@ -1,9 +1,11 @@
-export class PrimeField {
+import { FiniteField } from "./finiteField";
+
+export class PrimeField implements FiniteField<bigint> {
     readonly p: bigint;
 
     // Constructor
-    constructor(_p: bigint) {
-        this.p = _p;
+    constructor(p: bigint) {
+        this.p = p;
     }
 
     // Public Accessors

@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExtensionField = void 0;
+/*
+    A polynomial p(x) = a0 + a1·x + a2·x^2 + ... + an·x^n  is represented
+    by the array [a0, a1, a2, ..., an].
+ */
 class ExtensionField {
     Fp;
     modulusCoeffs;

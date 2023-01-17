@@ -1,6 +1,10 @@
 import { PrimeField } from "./primeField";
 import { FiniteField } from "./finiteField";
 
+/*
+    A polynomial p(x) = a0 + a1·x + a2·x^2 + ... + an·x^n  is represented
+    by the array [a0, a1, a2, ..., an].
+ */
 export class ExtensionField implements FiniteField<bigint[]> {
     readonly Fp: PrimeField;
     readonly modulusCoeffs: bigint[];

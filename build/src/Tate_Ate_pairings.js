@@ -4,32 +4,7 @@ const chai_1 = require("chai");
 const ellipticCurve_1 = require("./ellipticCurve");
 const extensionField_1 = require("./extensionField");
 const primeField_1 = require("./primeField");
-// Find line y = mx + c passing through two points P and Q
-// or vertical line y = x0 if Q = -P
-// and evaluate it at a point T
-function line(P, Q, T, Fq, E) {
-    // Should we check that P, Q, T are on the curve?
-    if (E.is_zero(P) || E.is_zero(Q) || E.is_zero(T)) {
-        throw new Error("Cannot evaluate line at zero");
-    }
-    // First case: P and Q are distinct and not on the same vertical line
-    if (P.x !== Q.x) {
-        const m = Fq.div(Fq.sub(Q.y, P.y), Fq.sub(Q.x, P.x));
-        const c = Fq.sub(P.y, Fq.mul(m, P.x));
-        return Fq.sub(T.y, Fq.add(Fq.mul(m, T.x), c));
-        // Second case: P and Q are the same point
-    }
-    else if (P.y === Q.y) {
-        const m = Fq.div(Fq.add(Fq.mul([3n], Fq.mul(P.x, P.x)), E.a), Fq.mul([2n], P.y));
-        const c = Fq.sub(P.y, Fq.mul(m, P.x));
-        return Fq.sub(T.y, Fq.add(Fq.mul(m, T.x), c));
-        // Third case: P and Q are distinct and on the same vertical line
-        // The line is y = P.x
-    }
-    else {
-        return Fq.sub(T.y, P.x);
-    }
-}
+const common_1 = require("./common");
 // This is the BKLS-GHS version of Miller's algorithm for computing the Weil and Tate pairings
 // Note: It only works for even embedding degrees k
 // r is assumed to be in binary form as r[i]
@@ -44,15 +19,15 @@ Q, r, Fq, E) {
     let R = P;
     let f = Fq.one;
     // Only loop until the second to last bit of r
-    for (let i = log2(r) - 2; i > 0; i--) {
-        f = Fq.mul(Fq.mul(f, f), line(R, R, Q, Fq, E));
+    for (let i = (0, common_1.log2)(r) - 2; i > 0; i--) {
+        f = Fq.mul(Fq.mul(f, f), (0, common_1.line)(R, R, Q, Fq, E));
         R = E.add(R, R);
         if (r & (1n << BigInt(i))) {
-            f = Fq.mul(f, line(R, P, Q, Fq, E));
+            f = Fq.mul(f, (0, common_1.line)(R, P, Q, Fq, E));
             R = E.add(R, P);
         }
     }
-    f = Fq.mul(Fq.mul(f, f), line(R, R, Q, Fq, E));
+    f = Fq.mul(Fq.mul(f, f), (0, common_1.line)(R, R, Q, Fq, E));
     return f;
 }
 /*
@@ -71,11 +46,11 @@ T, Fq, E) {
     }
     let R = Q;
     let f = Fq.one;
-    for (let i = log2(T) - 2; i >= 0; i--) {
-        f = Fq.mul(Fq.mul(f, f), line(R, R, P, Fq, E));
+    for (let i = (0, common_1.log2)(T) - 2; i >= 0; i--) {
+        f = Fq.mul(Fq.mul(f, f), (0, common_1.line)(R, R, P, Fq, E));
         R = E.add(R, R);
         if (T & (1n << BigInt(i))) {
-            f = Fq.mul(f, line(R, Q, P, Fq, E));
+            f = Fq.mul(f, (0, common_1.line)(R, Q, P, Fq, E));
             R = E.add(R, Q);
         }
     }
@@ -96,16 +71,6 @@ function Tate(P, Q, r, Fq, E) {
 function Ate(P, Q, T, r, Fq, E) {
     const e = Miller_loop_Ate(Q, P, T, Fq, E);
     return final_expontiation(r, Fq, e);
-}
-function log2(x) {
-    if (x == 0n)
-        return 0;
-    let r = 1;
-    while (x > 1n) {
-        x = x >> 1n;
-        r += 1;
-    }
-    return r;
 }
 // Some tests
 const p = 47n;

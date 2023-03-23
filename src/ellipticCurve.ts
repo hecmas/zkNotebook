@@ -119,15 +119,6 @@ export class EllipticCurveOverFp {
         return R;
     }
 
-    embedding_degree(r: bigint): bigint {
-        let k = 1n;
-        while ((this.Fp.p**k - 1n) % r !== 0n) {
-            k += 1n;
-        }
-
-        return k;
-    }
-
     // Fix this
     // twist(P: PointFq, w2: bigint[], w3: bigint[]): PointFq {
     //     if (this.is_zero(P)) return this.zero;
@@ -174,6 +165,9 @@ export class EllipticCurveOverFq {
             throw new Error("The curve is singular, choose another a and b");
         }
 
+        // Compute the emebdding degree
+        const k = 1;
+
         this.a = a;
         this.b = b;
         this.Fq = field;
@@ -210,15 +204,15 @@ export class EllipticCurveOverFq {
 
         if (this.is_zero(Q)) return P;
 
-        if (P.x === Q.x) {
-            if (P.y !== Q.y) {
+        if (this.Fq.eq(P.x, Q.x)) {
+            if (this.Fq.neq(P.y, Q.y)) {
                 // P = -Q
                 return this.zero;
             }
         }
 
         let m: bigint[];
-        if (P.x === Q.x && P.y === Q.y) {
+        if (this.Fq.eq(P.x, Q.x) && this.Fq.eq(P.y, Q.y)) {
             m = this.Fq.div(
                 this.Fq.add(this.Fq.mul([3n], this.Fq.mul(P.x, P.x)), this.a),
                 this.Fq.mul([2n], P.y)
@@ -262,15 +256,6 @@ export class EllipticCurveOverFq {
         return R;
     }
 
-    embedding_degree(r: bigint): bigint {
-        let k = 1n;
-        while ((this.Fq.Fp.p**k - 1n) % r !== 0n) {
-            k += 1n;
-        }
-
-        return k;
-    }
-
     // Fix this
     // twist(P: PointFq, w2: bigint[], w3: bigint[]): PointFq {
     //     if (this.is_zero(P)) return this.zero;
@@ -297,6 +282,14 @@ export class EllipticCurveOverFq {
     // }
 }
 
+export function embedding_degree(Fp: PrimeField, r: bigint): bigint {
+    let k = 1n;
+    while ((Fp.p ** k - 1n) % r !== 0n) {
+        k += 1n;
+    }
+
+    return k;
+}
 
 // Tests
 // const Fp = new PrimeField(11n);

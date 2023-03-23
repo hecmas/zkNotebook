@@ -1,12 +1,12 @@
 import { expect } from "chai";
-import { EllipticCurve } from "../src/ellipticCurve";
+import { EllipticCurveOverFp, EllipticCurveOverFq } from "../src/ellipticCurve";
 import { PrimeField } from "../src/primeField";
 import { ExtensionField } from "../src/extensionField";
 
 let Fp: PrimeField;
 let Fq: ExtensionField;
-let Ep: EllipticCurve<PrimeField, bigint>;
-let Eq: EllipticCurve<ExtensionField, bigint[]>;
+let Ep: EllipticCurveOverFp;
+let Eq: EllipticCurveOverFq;
 
 describe("EllipticCurve", () => {
     describe("is_zero()", () => {
@@ -25,7 +25,7 @@ describe("EllipticCurve", () => {
                     describe(`a = ${a}, b = ${b}, p = ${p}`, () => {
                         beforeEach(() => {
                             Fp = new PrimeField(p);
-                            Ep = new EllipticCurve(a, b, Fp);
+                            Ep = new EllipticCurveOverFp(a, b, Fp);
                         });
 
                         tests.forEach(({ P }) => {
@@ -55,7 +55,7 @@ describe("EllipticCurve", () => {
                     describe(`a = ${a}, b = ${b}, p = ${p}`, () => {
                         beforeEach(() => {
                             Fp = new PrimeField(p);
-                            Ep = new EllipticCurve(a, b, Fp);
+                            Ep = new EllipticCurveOverFp(a, b, Fp);
                         });
 
                         tests.forEach(({ P }) => {

@@ -1,8 +1,10 @@
+import { assert } from "chai";
 import {
     PointOverFp,
     PointOverFq,
     EllipticCurveOverFp,
     EllipticCurveOverFq,
+    embedding_degree,
 } from "./ellipticCurve";
 import { ExtensionField } from "./extensionField";
 import { PrimeField } from "./primeField";
@@ -88,8 +90,8 @@ function Tate(
     E: EllipticCurveOverFq
 ): bigint[] {
     // Let's compute the final exponentiation
-    const k = E.embedding_degree(r);
-    const exponent = (r ** k - 1n) / r; // It should be divisible
+    const k = embedding_degree(Fq.Fp, r);
+    const exponent = (Fq.Fp.p ** k - 1n) / r; // It should be divisible
     return Fq.exp(Miller_loop(P, Q, r, Fq, E), exponent);
 }
 
@@ -111,34 +113,44 @@ const n = 51;
 // the torsion group parameter r is typically chosen
 // as the largest prime factor of the order of the curve
 const r = 17n;
-const k = E.embedding_degree(r);
-console.log("k = ", k);
+const k = embedding_degree(Fp, r);
+assert(k === 4n, "The embedding degree should be 4");
 
-const P = { x: 45n, y: 23n };
-console.log("rP = ", E.escalarMul(P, r)); // P is in the r-torsion subgroup
+let P1 = { x: 45n, y: 23n };
+assert(E.is_zero(E.escalarMul(P1, r)), "P is not in the r-torsion subgroup");
 
 // To define Q, we need to move to the extension field F_{p**k}
 const Fq = new ExtensionField(Fp, [5n, 0n, -4n, 0n, 1n]);
 const eE = new EllipticCurveOverFq([21n], [15n], Fq);
 
 const Q = { x: [29n, 0n, 31n], y: [0n, 11n, 0n, 35n] };
-console.log("rQ = ", eE.escalarMul(Q, r)); // Q is in the r-torsion subgroup
+assert(eE.is_zero(eE.escalarMul(Q, r)), "Q is not in the r-torsion subgroup");
 
-// const f = Tate(P, Q, r, Fq, eE);
+const P = { x: [45n], y: [23n] };
+const e = Tate(P, Q, r, Fq, eE);
 
-// assert Tate(P,Q) == 33*u^3 + 43*u^2 + 45*u + 39
+assert(Fq.eq(e, [39n, 45n, 43n, 33n]), "Tate(P,Q) is not correctly computed");
 
 // // For sure, the pairing is non-degenerate
 // assert P.additive_order() == Q.additive_order() == r
-// assert Tate(P,Q) != F.one()
+assert(Fq.neq(e, Fq.one), "The pairing is degenerate");
 
 // // Let's check the bilinearity of the pairing
-// assert Tate(2*P, 12*Q) == Tate(P,12*Q)^2 == Tate(2*P,Q)^12 == Tate(P,Q)^24 == Tate(12*P,2*Q)
-// // assert Weil(2*P, 12*Q) == Weil(P,12*Q)^2 == Weil(2*P,Q)^12 == Weil(P,Q)^24 == Weil(12*P,2*Q)
+const P2 = eE.escalarMul(P, 2n);
+const P12 = eE.escalarMul(P, 12n);
+const Q2 = eE.escalarMul(Q, 2n);
+const Q12 = eE.escalarMul(Q, 12n);
+const e1 = Tate(P2, Q12, r, Fq, eE);
+const e2 = Fq.exp(Tate(P, Q12, r, Fq, eE), 2n);
+const e3 = Fq.exp(Tate(P2, Q, r, Fq, eE), 12n);
+const e4 = Fq.exp(Tate(P, Q, r, Fq, eE), 24n);
+const e5 = Tate(P12, Q2, r, Fq, eE);
+assert(Fq.eq(e1, e2) && Fq.eq(e1,e3) && Fq.eq(e1,e4) && Fq.eq(e1,e5), "The pairing is not bilinear");
 
-// // Check the trivial evaluations are satisfied
-// assert Tate(E(0),Q) == Tate(P,E(0)) == F.one()
+// Check the trivial evaluations are satisfied
+assert(Fq.eq(Tate(eE.zero, Q, r, Fq, eE), Fq.one), "Tate(0,Q) != 1");
+assert(Fq.eq(Tate(P, eE.zero, r, Fq, eE), Fq.one), "Tate(P,0) != 1");
 
-// // Since P and Q are generators, we should have that Tate(P,Q) is a primitive r-th root of unity
-// // i.e. a generator of set of roots of unity of order r
+// Since P and Q are generators, we should have that Tate(P,Q) is a primitive r-th root of unity
+// i.e. a generator of set of roots of unity of order r
 // assert multiplicative_order(Tate(P,Q)) == r

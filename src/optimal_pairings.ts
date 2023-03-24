@@ -8,7 +8,7 @@ import {
 } from "./ellipticCurve";
 import { ExtensionField } from "./extensionField";
 import { PrimeField } from "./primeField";
-import { line, log2 } from "./common";
+import { FrobeniusMap, line, log2 } from "./common";
 
 /* 
  This is the ate pairing obtained with loop shortening optimizations
@@ -17,9 +17,10 @@ import { line, log2 } from "./common";
  P is assumed to be from the (only) subgroup of E[r] over F_q
  i.e., a (reversed) Type 3 pairing is assumed
  Note: Since the loop goes only until |t-1| < r, we cannot save the last "add"
-       in the "double-and-add" as in the Tate pairing 
+       in the "double-and-add" as in the Tate pairing
+ Check https://hackmd.io/@jpw/bn254#Optimal-Ate-pairing
 */
-function Miller_loop_Ate(
+function Miller_loop_Ate_BN12_254(
     Q: PointOverFq,
     P: PointOverFq, // this point is actually over Fp
     loop_length: bigint,
@@ -41,6 +42,12 @@ function Miller_loop_Ate(
         }
     }
 
+    const Q1 = FrobeniusMap(Q, Fq);
+    const nQ2 = E.neg(FrobeniusMap(Q1, Fq));
+    f = Fq.mul(f, line(R, Q1, P, Fq, E));
+    R = E.add(R, Q1);
+    f = Fq.mul(f, line(R, nQ2, P, Fq, E));
+
     return f;
 }
 
@@ -55,9 +62,9 @@ function final_expontiation(
     return Fq.exp(f, exponent);
 }
 
-// Ate pairing computation
-// https://eprint.iacr.org/2008/096.pdf
-function optimal_ate_bn12_271(
+// Optimal ate pairing computation over the BN12-254 curve
+// https://hackmd.io/@jpw/bn254#Optimal-Ate-pairing
+function optimal_ate_bn12_254(
     x: bigint,
     P: PointOverFq,
     Q: PointOverFq,
@@ -65,47 +72,10 @@ function optimal_ate_bn12_271(
     Fq: ExtensionField,
     E: EllipticCurveOverFq
 ): bigint[] {
-    let c: bigint[] = [];
-    c[0] = 6n * x + 2n;
-    c[1] = 1n;
-    c[2] = -1n;
-    c[3] = 1n;
 
-    let s: bigint[] = [];
-    // s0 = c0 + c1*p + c2*p^2 + c3*p^3
-    s[0] = 0n;
-    for (let i = 3; i >= 0; i--) {
-        s[0] = s[0] * Fq.Fp.p + c[i];
-    }
+    const f = Miller_loop_Ate_BN12_254(Q, P, 6n * x + 2n, Fq, E);
 
-    // s1 = c1*p + c2*p^2 + c3*p^3
-    s[1] = s[0] - c[0];
-
-    // s2 = c2*p^2 + c3*p^3
-    s[2] = s[1] - c[1] * Fq.Fp.p;
-
-    // s3 = c3*p^3
-    s[3] = s[2] - c[2] * Fq.Fp.p ** 2n;
-
-    const f1 = Miller_loop_Ate(Q, P, c[0], Fq, E);
-    const l1 = line(E.escalarMul(Q, s[1]), E.escalarMul(Q, c[0]), P, Fq, E);
-    const l2 = line(
-        E.escalarMul(Q, s[2]),
-        E.escalarMul(Q, c[1] * Fq.Fp.p),
-        P,
-        Fq,
-        E
-    );
-    const l3 = line(
-        E.escalarMul(Q, s[3]),
-        E.escalarMul(Q, c[2] * Fq.Fp.p ** 2n),
-        P,
-        Fq,
-        E
-    );
-
-    const result = Fq.mul(f1, Fq.mul(l1, Fq.mul(l2, l3)));
-    return final_expontiation(r, Fq, result);
+    return final_expontiation(r, Fq, f);
 }
 
 // Section 3 of https://www.cryptojedi.org/papers/pfcpo.pdf
@@ -136,7 +106,7 @@ function twist(
 // Test 1: Optimal Ate Pairing over BN12-254
 // https://hackmd.io/@jpw/bn254
 const x = 4965661367192848881n;
-const t = 6n * x ** 2n + 1n;
+const t = 6n * x ** 2n + 1n; // This is not necessary at all
 const p = 36n * x ** 4n + 36n * x ** 3n + 24n * x ** 2n + 6n * x + 1n;
 const r = 36n * x ** 4n + 36n * x ** 3n + 18n * x ** 2n + 6n * x + 1n;
 
@@ -166,7 +136,12 @@ const w = [0n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n];
 // Curve E: y² = x³ + 3 over Fp
 const E = new EllipticCurveOverFp(0n, 3n, Fp);
 // Generator of E(Fp)
-const G1 = { x: 1n, y: 2n };
+let G1 = { x: 1n, y: 2n };
+assert(E.is_on_curve(G1), "G1 is not on curve E: y² = x³ + 3");
+assert(
+    E.is_zero(E.escalarMul(G1, r)),
+    "G1 is not a generator of the r-torsion"
+);
 
 // Twisted curve E': y² = x³ + 3/xi over Fp2
 const a2 = [0n];
@@ -183,24 +158,36 @@ const G2 = {
         4082367875863433681332203403145435568316851327593401208105741076214120093531n,
     ],
 };
+assert(E2.is_on_curve(G2), "G2 is not on curve E': y² = x³ + 3/xi");
+assert(
+    E2.is_zero(E2.escalarMul(G2, r)),
+    "G2 is not a generator of the r-torsion"
+);
 
 // Curve y² = x³ + 3 over Fp12
 const E12 = new EllipticCurveOverFq([0n], [3n], Fp12);
 
-const G12 = twist(G2, Fp12, E2);
-assert(E12.is_on_curve(G12), "The twist is not working");
+const Q = twist(G2, Fp12, E2);
+assert(E12.is_on_curve(Q), "The twist is not working");
 
 const k = embedding_degree(Fp, r);
 assert(k === 12n, "The embedding degree should be 12");
 
-// let P1 = { x: 45n, y: 23n };
-// assert(E.is_zero(E.escalarMul(P1, r)), "P is not in the r-torsion subgroup");
+const P = { x: [1n], y: [2n] };
+const e = optimal_ate_bn12_254(x, P, Q, r, Fp12, E12);
 
-// // To define Q, we need to move to the extension field F_{p**k}
-// const Fq = new ExtensionField(Fp, [5n, 0n, -4n, 0n, 1n]);
-// const eE = new EllipticCurveOverFq([21n], [15n], Fq);
+// Let's check the bilinearity of the pairing
+const P2 = E12.escalarMul(P, 2n);
+const P12 = E12.escalarMul(P, 12n);
+const Q2 = E12.escalarMul(Q, 2n);
+const Q12 = E12.escalarMul(Q, 12n);
+const e1 = optimal_ate_bn12_254(x, P2, Q12, r, Fp12, E12);
+const e2 = Fp12.exp(optimal_ate_bn12_254(x, P, Q12, r, Fp12, E12), 2n);
+const e3 = Fp12.exp(optimal_ate_bn12_254(x, P2, Q, r, Fp12, E12), 12n);
+const e4 = Fp12.exp(optimal_ate_bn12_254(x, P, Q, r, Fp12, E12), 24n);
+const e5 = optimal_ate_bn12_254(x, P12, Q2, r, Fp12, E12);
 
-// const Q = { x: [29n, 0n, 31n], y: [0n, 11n, 0n, 35n] };
-// assert(eE.is_zero(eE.escalarMul(Q, r)), "Q is not in the r-torsion subgroup");
-
-// const P = { x: [45n], y: [23n] };
+assert(
+    Fp12.eq(e1, e2) && Fp12.eq(e1, e3) && Fp12.eq(e1, e4) && Fp12.eq(e1, e5),
+    "The pairing is not bilinear"
+);

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.line = exports.log2 = void 0;
+exports.line = exports.FrobeniusMap = exports.log2 = void 0;
 function log2(x) {
     if (x == 0n)
         return 0;
@@ -12,6 +12,10 @@ function log2(x) {
     return r;
 }
 exports.log2 = log2;
+function FrobeniusMap(P, Fq) {
+    return { x: Fq.exp(P.x, Fq.Fp.p), y: Fq.exp(P.y, Fq.Fp.p) };
+}
+exports.FrobeniusMap = FrobeniusMap;
 // Find line y = mx + c passing through two points P and Q
 // or vertical line y = x0 if Q = -P
 // and evaluate it at a point T

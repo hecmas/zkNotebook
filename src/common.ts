@@ -12,6 +12,10 @@ export function log2(x: bigint): number {
     return r;
 }
 
+export function FrobeniusMap(P: PointOverFq, Fq: ExtensionField): PointOverFq {
+    return {x: Fq.exp(P.x, Fq.Fp.p), y: Fq.exp(P.y, Fq.Fp.p)};
+}
+
 // Find line y = mx + c passing through two points P and Q
 // or vertical line y = x0 if Q = -P
 // and evaluate it at a point T

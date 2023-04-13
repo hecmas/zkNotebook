@@ -162,18 +162,18 @@ function final_expontiation(
     const mp = Frobenius_operator1(feasy, Fq.Fq);
     const mp2 = Frobenius_operator2(feasy, Fq.Fq);
     const mp3 = Frobenius_operator3(feasy, Fq.Fq);
-    const mpx = Fq.exp(mp, x);
-    const mpx2 = Fq.exp(mpx, x);
-    const mpx3 = Fq.exp(mpx2, x);
-    const mp2x2 = Fq.exp(Fq.exp(mp2, x), x);
+    const mxp = Frobenius_operator1(mx, Fq.Fq);
+    const mxp2 = Frobenius_operator1(mx2, Fq.Fq);
+    const mxp3 = Frobenius_operator1(mx3, Fq.Fq);
+    const mx2p2 = Frobenius_operator2(mx2, Fq.Fq);
 
     const y0 = Fq.mul(Fq.mul(mp, mp2), mp3);
     const y1 = conjugateFp12(feasy, Fq.Fq);
-    const y2 = mp2x2;
-    const y3 = conjugateFp12(mpx, Fq.Fq);
-    const y4 = conjugateFp12(Fq.mul(mx, mpx2), Fq.Fq);
+    const y2 = mx2p2;
+    const y3 = conjugateFp12(mxp, Fq.Fq);
+    const y4 = conjugateFp12(Fq.mul(mx, mxp2), Fq.Fq);
     const y5 = conjugateFp12(mx2, Fq.Fq);
-    const y6 = conjugateFp12(Fq.mul(mx3, mpx3), Fq.Fq);
+    const y6 = conjugateFp12(Fq.mul(mx3, mxp3), Fq.Fq);
 
     // vectorial addition chain technique
 

@@ -12,31 +12,12 @@ export function log2(x: bigint): number {
     return r;
 }
 
-// TODO: Hardcode them
 // We assume p === 1 (mod 6)
 export function Frobenius_constants(Fq: ExtensionField): bigint[][] {
     const xi = [9n, 1n];
     const e1 = (Fq.Fp.p - 1n) / 6n;
     const e2 = (Fq.Fp.p ** 2n - 1n) / 6n;
     const e3 = (Fq.Fp.p ** 3n - 1n) / 6n;
-
-    // const gamma11: bigint[] = Fq.exp(xi, e1);
-    // const gamma12: bigint[] = Fq.exp(xi, 2n*e1);
-    // const gamma13: bigint[] = Fq.exp(xi, 3n*e1);
-    // const gamma14: bigint[] = Fq.exp(xi, 4n*e1);
-    // const gamma15: bigint[] = Fq.exp(xi, 5n*e1);
-
-    // const gamma21: bigint[] = Fq.exp(xi, e2);
-    // const gamma22: bigint[] = Fq.exp(xi, 2n*e2);
-    // const gamma23: bigint[] = Fq.exp(xi, 3n*e2);
-    // const gamma24: bigint[] = Fq.exp(xi, 4n*e2);
-    // const gamma25: bigint[] = Fq.exp(xi, 5n*e2);
-
-    // const gamma31: bigint[] = Fq.exp(xi, e3);
-    // const gamma32: bigint[] = Fq.exp(xi, 2n*e3);
-    // const gamma33: bigint[] = Fq.exp(xi, 3n*e3);
-    // const gamma34: bigint[] = Fq.exp(xi, 4n*e3);
-    // const gamma35: bigint[] = Fq.exp(xi, 5n*e3);
 
     let gammas: bigint[][] = [];
     for (let i = 1n; i < 6n; i++) {
@@ -50,14 +31,6 @@ export function Frobenius_constants(Fq: ExtensionField): bigint[][] {
     }
 
     return gammas;
-}
-
-export function oldFrobenius(P: PointOverFq, Fq: ExtensionField): PointOverFq {
-    return { x: Fq.exp(P.x, Fq.Fp.p), y: Fq.exp(P.y, Fq.Fp.p) };
-}
-
-export function Frobenius(P: PointOverFq, Fq: ExtensionField): PointOverFq {
-    return { x: Fq.exp(P.x, Fq.Fp.p), y: Fq.exp(P.y, Fq.Fp.p) };
 }
 
 // Find line y = mx + c passing through two points P and Q of E'(Fp2)

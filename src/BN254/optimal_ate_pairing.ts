@@ -10,7 +10,8 @@ import {
 } from "../ellipticCurve";
 import { ExtensionField, ExtensionFieldOverFq } from "../extensionField";
 import { PrimeField } from "../primeField";
-import { Frobenius, Frobenius_constants, line } from "./common";
+import { line } from "./common";
+import { gamma12, gamma13 } from "./Frobenius_constants";
 
 const bound = [
     0, 0, 0, 1, 0, 1, 0, -1, 0, 0, 1, -1, 0, 0, 1, 0, 0, 1, 1, 0, -1, 0, 0, 1,
@@ -49,13 +50,23 @@ function Miller_loop_Ate_BN254(
         }
     }
 
-    const Q1 = Frobenius(Q, Fq.Fq);
-    const nQ2 = E.neg(Frobenius(Q1, Fq.Fq));
-    f = Fq.mul(f, line(R, Q1, P, Fq.Fq, E));
-    R = E.add(R, Q1);
-    f = Fq.mul(f, line(R, nQ2, P, Fq.Fq, E));
+    const xconjgugate = [Q.x[0], -Q.x[1]];
+    const yconjugate = [Q.y[0], -Q.y[1]];
+    const Qp: PointOverFq = { x: Fq.Fq.mul(gamma12,xconjgugate), y: Fq.Fq.mul(gamma13,yconjugate) };
+
+    const xpconjugate = [Qp.x[0], -Qp.x[1]];
+    const ypconjugate = [Qp.y[0], -Qp.y[1]];
+    const S: PointOverFq = { x: Fq.Fq.mul(gamma12,xpconjugate), y: Fq.Fq.mul(gamma13,ypconjugate) };
+    const Qpp = E.neg(S);
+    f = Fq.mul(f, line(R, Qp, P, Fq.Fq, E));
+    R = E.add(R, Qp);
+    f = Fq.mul(f, line(R, Qpp, P, Fq.Fq, E));
 
     return f;
+}
+
+function Frobenius(P: PointOverFq, Fq: ExtensionField): PointOverFq {
+    return { x: Fq.exp(P.x, p), y: Fq.exp(P.y, p) };
 }
 
 // Final exponentiation
@@ -169,9 +180,6 @@ const e3 = Fp12.exp(optimal_ate_bn254(P2, Q, Fp12, tE), 12n);
 const e4 = Fp12.exp(optimal_ate_bn254(P, Q, Fp12, tE), 24n);
 const e5 = optimal_ate_bn254(P12, Q2, Fp12, tE);
 
-
-console.log("e(P2,Q12) = ", e1);
-console.log("e(P,Q12)^2 = ", e2);
 assert(
     Fp12.eq(e1, e2) && Fp12.eq(e1, e3) && Fp12.eq(e1, e4) && Fp12.eq(e1, e5),
     "The pairing is not bilinear"

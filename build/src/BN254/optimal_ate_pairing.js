@@ -5,6 +5,7 @@ const ellipticCurve_1 = require("../ellipticCurve");
 const extensionField_1 = require("../extensionField");
 const primeField_1 = require("../primeField");
 const common_1 = require("./common");
+const Frobenius_constants_1 = require("./Frobenius_constants");
 const bound = [
     0, 0, 0, 1, 0, 1, 0, -1, 0, 0, 1, -1, 0, 0, 1, 0, 0, 1, 1, 0, -1, 0, 0, 1,
     0, -1, 0, 0, 0, 0, 1, 1, 1, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1,
@@ -36,12 +37,20 @@ Fq, E) {
             R = E.add(R, nQ);
         }
     }
-    const Q1 = (0, common_1.Frobenius)(Q, Fq.Fq);
-    const nQ2 = E.neg((0, common_1.Frobenius)(Q1, Fq.Fq));
-    f = Fq.mul(f, (0, common_1.line)(R, Q1, P, Fq.Fq, E));
-    R = E.add(R, Q1);
-    f = Fq.mul(f, (0, common_1.line)(R, nQ2, P, Fq.Fq, E));
+    const xconjgugate = [Q.x[0], -Q.x[1]];
+    const yconjugate = [Q.y[0], -Q.y[1]];
+    const Qp = { x: Fq.Fq.mul(Frobenius_constants_1.gamma12, xconjgugate), y: Fq.Fq.mul(Frobenius_constants_1.gamma13, yconjugate) };
+    const xpconjugate = [Qp.x[0], -Qp.x[1]];
+    const ypconjugate = [Qp.y[0], -Qp.y[1]];
+    const S = { x: Fq.Fq.mul(Frobenius_constants_1.gamma12, xpconjugate), y: Fq.Fq.mul(Frobenius_constants_1.gamma13, ypconjugate) };
+    const Qpp = E.neg(S);
+    f = Fq.mul(f, (0, common_1.line)(R, Qp, P, Fq.Fq, E));
+    R = E.add(R, Qp);
+    f = Fq.mul(f, (0, common_1.line)(R, Qpp, P, Fq.Fq, E));
     return f;
+}
+function Frobenius(P, Fq) {
+    return { x: Fq.exp(P.x, p), y: Fq.exp(P.y, p) };
 }
 // Final exponentiation
 function final_expontiation(Fq, f) {
@@ -62,7 +71,7 @@ function twist(P, E) {
     const y = [[0n], [0n], [0n], P.y, [0n], [0n]];
     return { x, y };
 }
-// Test 1: Optimal Ate Pairing over BN12-254
+// Test 1: Optimal Ate Pairing over BN254
 // https://hackmd.io/@jpw/bn254
 const x = 4965661367192848881n;
 const t = 6n * x ** 2n + 1n; // This is not necessary at all
@@ -119,7 +128,5 @@ const e2 = Fp12.exp(optimal_ate_bn254(P, Q12, Fp12, tE), 2n);
 const e3 = Fp12.exp(optimal_ate_bn254(P2, Q, Fp12, tE), 12n);
 const e4 = Fp12.exp(optimal_ate_bn254(P, Q, Fp12, tE), 24n);
 const e5 = optimal_ate_bn254(P12, Q2, Fp12, tE);
-console.log("e(P2,Q12) = ", e1);
-console.log("e(P,Q12)^2 = ", e2);
 (0, chai_1.assert)(Fp12.eq(e1, e2) && Fp12.eq(e1, e3) && Fp12.eq(e1, e4) && Fp12.eq(e1, e5), "The pairing is not bilinear");
 //# sourceMappingURL=optimal_ate_pairing.js.map

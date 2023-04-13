@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.embedding_degree = exports.EllipticCurveOverFq = exports.EllipticCurveOverFp = void 0;
+exports.embedding_degree = exports.EllipticCurveOverFqOverFq = exports.EllipticCurveOverFq = exports.EllipticCurveOverFp = void 0;
 // /*
 //     * Elliptic curve over Fp
 //     * y² = x³ + a·x + b
@@ -181,6 +181,97 @@ class EllipticCurveOverFq {
     }
 }
 exports.EllipticCurveOverFq = EllipticCurveOverFq;
+// /*
+//     * Elliptic curve over Fq
+//     * y² = x³ + a·x + b
+//     * a, b are Fq elements
+//     * 4·a³ + 27·b² != 0
+//     * q is a prime power
+//     */
+class EllipticCurveOverFqOverFq {
+    a;
+    b;
+    Fq;
+    constructor(a, b, field) {
+        const firstSummand = field.mul([[4n]], field.exp(a, 3n));
+        const secondSummand = field.mul([[27n]], field.exp(b, 2n));
+        const sum = field.add(firstSummand, secondSummand);
+        if (field.eq(sum, field.zero)) {
+            throw new Error("The curve is singular, choose another a and b");
+        }
+        // Compute the emebdding degree
+        const k = 1;
+        this.a = a;
+        this.b = b;
+        this.Fq = field;
+    }
+    // Public Accessors
+    get zero() {
+        return null;
+    }
+    // Check if a point is the identity element
+    is_zero(P) {
+        return P === this.zero;
+    }
+    // Check that a point is on the curve
+    is_on_curve(P) {
+        if (this.is_zero(P)) {
+            return true;
+        }
+        const left_side = this.Fq.exp(P.y, 2n);
+        const right_side = this.Fq.add(this.Fq.add(this.Fq.exp(P.x, 3n), this.Fq.mul(this.a, P.x)), this.b);
+        return this.Fq.eq(left_side, right_side);
+    }
+    // Basic Arithmetic
+    add(P, Q) {
+        if (this.is_zero(P))
+            return Q;
+        if (this.is_zero(Q))
+            return P;
+        if (this.Fq.eq(P.x, Q.x)) {
+            if (this.Fq.neq(P.y, Q.y)) {
+                // P = -Q
+                return this.zero;
+            }
+        }
+        let m;
+        if (this.Fq.eq(P.x, Q.x) && this.Fq.eq(P.y, Q.y)) {
+            m = this.Fq.div(this.Fq.add(this.Fq.mul([[3n]], this.Fq.mul(P.x, P.x)), this.a), this.Fq.mul([[2n]], P.y));
+        }
+        else {
+            m = this.Fq.div(this.Fq.sub(Q.y, P.y), this.Fq.sub(Q.x, P.x));
+        }
+        const x = this.Fq.sub(this.Fq.sub(this.Fq.mul(m, m), P.x), Q.x);
+        const y = this.Fq.sub(this.Fq.mul(m, this.Fq.sub(P.x, x)), P.y);
+        return { x, y };
+    }
+    sub(P, Q) {
+        return this.add(P, this.neg(Q));
+    }
+    neg(P) {
+        if (this.is_zero(P))
+            return this.zero;
+        return { x: this.Fq.mod(P.x), y: this.Fq.neg(P.y) };
+    }
+    escalarMul(P, k) {
+        if (k === 0n)
+            return this.zero;
+        if (k < 0n) {
+            k = -k;
+            P = this.neg(P);
+        }
+        let R = P;
+        let binary = k.toString(2);
+        for (let i = 1; i < binary.length; i++) {
+            R = this.add(R, R);
+            if (binary[i] === "1") {
+                R = this.add(R, P);
+            }
+        }
+        return R;
+    }
+}
+exports.EllipticCurveOverFqOverFq = EllipticCurveOverFqOverFq;
 function embedding_degree(Fp, r) {
     let k = 1n;
     while ((Fp.p ** k - 1n) % r !== 0n) {

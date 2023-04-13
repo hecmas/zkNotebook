@@ -1,5 +1,5 @@
 import { PrimeField } from "./primeField";
-import { ExtensionField } from "./extensionField";
+import { ExtensionField, ExtensionFieldOverFq } from "./extensionField";
 
 export interface PointOverFp {
     x: bigint;
@@ -9,6 +9,11 @@ export interface PointOverFp {
 export interface PointOverFq {
     x: bigint[];
     y: bigint[];
+}
+
+export interface PointOverFqOverFq {
+    x: bigint[][];
+    y: bigint[][];
 }
 
 // /*
@@ -118,31 +123,6 @@ export class EllipticCurveOverFp {
 
         return R;
     }
-
-    // Fix this
-    // twist(P: PointFq, w2: bigint[], w3: bigint[]): PointFq {
-    //     if (this.is_zero(P)) return this.zero;
-
-    //     // Field isomorphism from Fp[X]/(X²) to Fp[X]/(X² - 18·X + 82)
-    //     let xcoeffs = [
-    //         this.Fp.Fp.sub(P.x[0], this.Fp.Fp.mul(9n, P.x[1])),
-    //         P.x[1],
-    //     ];
-    //     let ycoeffs = [
-    //         this.Fp.Fp.sub(P.y[0], this.Fp.Fp.mul(9n, P.y[1])),
-    //         P.y[1],
-    //     ];
-    //     // Isomorphism into subfield of Fp[X]/(w¹² - 18·w⁶ + 82),
-    //     // where w⁶ = X
-    //     let nx = [xcoeffs[0], 0n, 0n, 0n, 0n, 0n, xcoeffs[1]];
-    //     let ny = [ycoeffs[0], 0n, 0n, 0n, 0n, 0n, ycoeffs[1]];
-
-    //     // Divide x coord by w² and y coord by w³
-    //     let x = this.Fp.div(nx, w2);
-    //     let y = this.Fp.div(ny, w3);
-
-    //     return { x, y };
-    // }
 }
 
 // /*
@@ -255,31 +235,118 @@ export class EllipticCurveOverFq {
 
         return R;
     }
+}
 
-    // Fix this
-    // twist(P: PointFq, w2: bigint[], w3: bigint[]): PointFq {
-    //     if (this.is_zero(P)) return this.zero;
+// /*
+//     * Elliptic curve over Fq
+//     * y² = x³ + a·x + b
+//     * a, b are Fq elements
+//     * 4·a³ + 27·b² != 0
+//     * q is a prime power
+//     */
+export class EllipticCurveOverFqOverFq {
+    readonly a: bigint[][];
+    readonly b: bigint[][];
+    readonly Fq: ExtensionFieldOverFq;
 
-    //     // Field isomorphism from Fp[X]/(X²) to Fp[X]/(X² - 18·X + 82)
-    //     let xcoeffs = [
-    //         this.Fq.Fp.sub(P.x[0], this.Fq.Fp.mul(9n, P.x[1])),
-    //         P.x[1],
-    //     ];
-    //     let ycoeffs = [
-    //         this.Fq.Fp.sub(P.y[0], this.Fq.Fp.mul(9n, P.y[1])),
-    //         P.y[1],
-    //     ];
-    //     // Isomorphism into subfield of Fp[X]/(w¹² - 18·w⁶ + 82),
-    //     // where w⁶ = X
-    //     let nx = [xcoeffs[0], 0n, 0n, 0n, 0n, 0n, xcoeffs[1]];
-    //     let ny = [ycoeffs[0], 0n, 0n, 0n, 0n, 0n, ycoeffs[1]];
+    constructor(a: bigint[][], b: bigint[][], field: ExtensionFieldOverFq) {
+        const firstSummand = field.mul([[4n]], field.exp(a, 3n));
+        const secondSummand = field.mul([[27n]], field.exp(b, 2n));
+        const sum = field.add(firstSummand, secondSummand);
+        if (field.eq(sum, field.zero)) {
+            throw new Error("The curve is singular, choose another a and b");
+        }
 
-    //     // Divide x coord by w² and y coord by w³
-    //     let x = this.Fq.div(nx, w2);
-    //     let y = this.Fq.div(ny, w3);
+        // Compute the emebdding degree
+        const k = 1;
 
-    //     return { x, y };
-    // }
+        this.a = a;
+        this.b = b;
+        this.Fq = field;
+    }
+
+    // Public Accessors
+    get zero(): null {
+        return null;
+    }
+
+    // Check if a point is the identity element
+    is_zero(P: PointOverFqOverFq): boolean {
+        return P === this.zero;
+    }
+
+    // Check that a point is on the curve
+    is_on_curve(P: PointOverFqOverFq): boolean {
+        if (this.is_zero(P)) {
+            return true;
+        }
+
+        const left_side = this.Fq.exp(P.y, 2n);
+        const right_side = this.Fq.add(
+            this.Fq.add(this.Fq.exp(P.x, 3n), this.Fq.mul(this.a, P.x)),
+            this.b
+        );
+
+        return this.Fq.eq(left_side, right_side);
+    }
+
+    // Basic Arithmetic
+    add(P: PointOverFqOverFq, Q: PointOverFqOverFq): PointOverFqOverFq {
+        if (this.is_zero(P)) return Q;
+
+        if (this.is_zero(Q)) return P;
+
+        if (this.Fq.eq(P.x, Q.x)) {
+            if (this.Fq.neq(P.y, Q.y)) {
+                // P = -Q
+                return this.zero;
+            }
+        }
+
+        let m: bigint[][];
+        if (this.Fq.eq(P.x, Q.x) && this.Fq.eq(P.y, Q.y)) {
+            m = this.Fq.div(
+                this.Fq.add(this.Fq.mul([[3n]], this.Fq.mul(P.x, P.x)), this.a),
+                this.Fq.mul([[2n]], P.y)
+            );
+        } else {
+            m = this.Fq.div(this.Fq.sub(Q.y, P.y), this.Fq.sub(Q.x, P.x));
+        }
+
+        const x = this.Fq.sub(this.Fq.sub(this.Fq.mul(m, m), P.x), Q.x);
+        const y = this.Fq.sub(this.Fq.mul(m, this.Fq.sub(P.x, x)), P.y);
+        return { x, y };
+    }
+
+    sub(P: PointOverFqOverFq, Q: PointOverFqOverFq): PointOverFqOverFq {
+        return this.add(P, this.neg(Q));
+    }
+
+    neg(P: PointOverFqOverFq): PointOverFqOverFq {
+        if (this.is_zero(P)) return this.zero;
+
+        return { x: this.Fq.mod(P.x), y: this.Fq.neg(P.y) };
+    }
+
+    escalarMul(P: PointOverFqOverFq, k: bigint): PointOverFqOverFq {
+        if (k === 0n) return this.zero;
+
+        if (k < 0n) {
+            k = -k;
+            P = this.neg(P);
+        }
+
+        let R = P;
+        let binary = k.toString(2);
+        for (let i = 1; i < binary.length; i++) {
+            R = this.add(R, R);
+            if (binary[i] === "1") {
+                R = this.add(R, P);
+            }
+        }
+
+        return R;
+    }
 }
 
 export function embedding_degree(Fp: PrimeField, r: bigint): bigint {

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.line = exports.Frobenius_constants = exports.log2 = void 0;
+exports.line = exports.twist_constants = exports.Frobenius_constants = exports.log2 = void 0;
+const constants_1 = require("./constants");
 function log2(x) {
     if (x == 0n)
         return 0;
@@ -12,12 +13,13 @@ function log2(x) {
     return r;
 }
 exports.log2 = log2;
+// I have used the following function to generate and hardcode all the Frobenius constants gammaij
 // We assume p === 1 (mod 6)
 function Frobenius_constants(Fq) {
     const xi = [9n, 1n];
-    const e1 = (Fq.Fp.p - 1n) / 6n;
-    const e2 = (Fq.Fp.p ** 2n - 1n) / 6n;
-    const e3 = (Fq.Fp.p ** 3n - 1n) / 6n;
+    const e1 = (constants_1.p - 1n) / 6n;
+    const e2 = (constants_1.p ** 2n - 1n) / 6n;
+    const e3 = (constants_1.p ** 3n - 1n) / 6n;
     let gammas = [];
     for (let i = 1n; i < 6n; i++) {
         gammas.push(Fq.exp(xi, i * e1));
@@ -31,6 +33,13 @@ function Frobenius_constants(Fq) {
     return gammas;
 }
 exports.Frobenius_constants = Frobenius_constants;
+function twist_constants(Fq) {
+    const xi = [9n, 1n];
+    const e1 = (constants_1.p - 1n) / 3n;
+    const e2 = (constants_1.p - 1n) / 2n;
+    return [Fq.exp(xi, e1), Fq.exp(xi, e2)];
+}
+exports.twist_constants = twist_constants;
 // Find line y = mx + c passing through two points P and Q of E'(Fp2)
 // and evaluate it at a point T of E(Fp)
 function line(P, Q, T, Fq, E) {

@@ -1,23 +1,14 @@
-import { EllipticCurveOverFq, EllipticCurveOverFqOverFq, PointOverFq, PointOverFqOverFq } from "../ellipticCurve";
-import { ExtensionField, ExtensionFieldOverFq } from "../extensionField";
+import { EllipticCurveOverFq, PointOverFq } from "../ellipticCurve";
+import { ExtensionField } from "../extensionField";
+import { p } from "./constants";
 
-export function log2(x: bigint): number {
-    if (x == 0n) return 0;
-
-    let r = 1;
-    while (x > 1n) {
-        x = x >> 1n;
-        r += 1;
-    }
-    return r;
-}
-
-// We assume p === 1 (mod 6)
+// I have used the following function to generate and hardcode all the Frobenius constants gammaij
+// p satisfies p === 1 (mod 6)
 export function Frobenius_constants(Fq: ExtensionField): bigint[][] {
     const xi = [9n, 1n];
-    const e1 = (Fq.Fp.p - 1n) / 6n;
-    const e2 = (Fq.Fp.p ** 2n - 1n) / 6n;
-    const e3 = (Fq.Fp.p ** 3n - 1n) / 6n;
+    const e1 = (p - 1n) / 6n;
+    const e2 = (p ** 2n - 1n) / 6n;
+    const e3 = (p ** 3n - 1n) / 6n;
 
     let gammas: bigint[][] = [];
     for (let i = 1n; i < 6n; i++) {
@@ -31,6 +22,14 @@ export function Frobenius_constants(Fq: ExtensionField): bigint[][] {
     }
 
     return gammas;
+}
+
+export function twist_constants(Fq: ExtensionField): bigint[][] {
+    const xi = [9n, 1n];
+    const e1 = (p - 1n) / 3n;
+    const e2 = (p - 1n) / 2n;
+
+    return [Fq.exp(xi, e1), Fq.exp(xi, e2)];
 }
 
 // Find line y = mx + c passing through two points P and Q of E'(Fp2)

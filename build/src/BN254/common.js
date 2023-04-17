@@ -1,20 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.line = exports.twist_constants = exports.Frobenius_constants = exports.log2 = void 0;
+exports.line = exports.twist_constants = exports.Frobenius_constants = void 0;
 const constants_1 = require("./constants");
-function log2(x) {
-    if (x == 0n)
-        return 0;
-    let r = 1;
-    while (x > 1n) {
-        x = x >> 1n;
-        r += 1;
-    }
-    return r;
-}
-exports.log2 = log2;
 // I have used the following function to generate and hardcode all the Frobenius constants gammaij
-// We assume p === 1 (mod 6)
+// p satisfies p === 1 (mod 6)
 function Frobenius_constants(Fq) {
     const xi = [9n, 1n];
     const e1 = (constants_1.p - 1n) / 6n;

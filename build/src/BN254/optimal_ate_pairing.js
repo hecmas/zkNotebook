@@ -1,12 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.twist = exports.optimal_ate_bn254 = void 0;
 const chai_1 = require("chai");
-const ellipticCurve_1 = require("../ellipticCurve");
-const extensionField_1 = require("../extensionField");
-const primeField_1 = require("../primeField");
 const common_1 = require("./common");
 const constants = require("./constants");
-// TODO: Implement cyclotomic subgroup squaring
+const parameters_1 = require("./parameters");
 /*
  This is the optimal ate pairing
  For sure, Q is assumed to be from the (only) subgroup of E'[r] over Fp2
@@ -133,34 +131,36 @@ function final_expontiation(Fq, f) {
     const T04 = Fq.mul(Fq.exp(T03, 2n), T14);
     return T04;
 }
+//TODO: Implement multiple pairings at once
 // Optimal ate pairing computation over the BN12-254 curve
 // https://hackmd.io/@jpw/bn254#Optimal-Ate-pairing
 function optimal_ate_bn254(P, Q, Fq) {
-    if (E.is_zero(P) && tE.is_zero(Q) === false) {
+    if (parameters_1.E.is_zero(P) && parameters_1.tE.is_zero(Q) === false) {
         // Check that Q belongs to E'(Fp2)[r]
         const R = twist_endomorphism(Q);
-        const S = tE.escalarMul(Q, 6n * constants.x ** 2n);
+        const S = parameters_1.tE.escalarMul(Q, 6n * constants.x ** 2n);
         (0, chai_1.assert)(Fq.Fq.eq(R.x, S.x) && Fq.Fq.eq(R.y, S.y), "Q doest not belong to E'(Fp2)[r]");
         return [[1n]];
     }
-    else if (E.is_zero(P) === false && tE.is_zero(Q)) {
-        (0, chai_1.assert)(E.is_on_curve(P), "P doest not belong to E(Fp)[r]");
+    else if (parameters_1.E.is_zero(P) === false && parameters_1.tE.is_zero(Q)) {
+        (0, chai_1.assert)(parameters_1.E.is_on_curve(P), "P doest not belong to E(Fp)[r]");
         return [[1n]];
     }
-    else if (E.is_zero(P) && tE.is_zero(Q)) {
+    else if (parameters_1.E.is_zero(P) && parameters_1.tE.is_zero(Q)) {
         return [[1n]];
     }
     // a] Check that P belongs to E(Fp)[r] = E(Fp)
-    (0, chai_1.assert)(E.is_on_curve(P), "P doest not belong to E(Fp)[r]");
+    (0, chai_1.assert)(parameters_1.E.is_on_curve(P), "P doest not belong to E(Fp)[r]");
     // b] Check that Q belongs to E'(Fp2)[r]
     const R = twist_endomorphism(Q);
-    const S = tE.escalarMul(Q, 6n * constants.x ** 2n);
+    const S = parameters_1.tE.escalarMul(Q, 6n * constants.x ** 2n);
     (0, chai_1.assert)(Fq.Fq.eq(R.x, S.x) && Fq.Fq.eq(R.y, S.y), "Q doest not belong to E'(Fp2)[r]");
     const Pm = { x: [P.x], y: [P.y] };
-    // d] Compute the pairing
-    const f = Miller_loop_Ate_BN254(Q, Pm, Fq, tE);
+    // c] Compute the pairing
+    const f = Miller_loop_Ate_BN254(Q, Pm, Fq, parameters_1.tE);
     return final_expontiation(Fq, f);
 }
+exports.optimal_ate_bn254 = optimal_ate_bn254;
 // This function sends points from E'(Fp2) to E(Fp12)
 function twist(P, E) {
     if (E.is_zero(P))
@@ -169,81 +169,16 @@ function twist(P, E) {
     const y = [[0n], [0n], [0n], P.y, [0n], [0n]];
     return { x, y };
 }
-// This function sends points from E'(Fp2) to E(Fp12)
+exports.twist = twist;
+// This function sends points from E'(Fp2) to E'(Fp2)
 function twist_endomorphism(P) {
-    if (tE.is_zero(P))
+    if (parameters_1.tE.is_zero(P))
         return null;
     const xconjgugate = conjugateFp2(P.x);
     const yconjugate = conjugateFp2(P.y);
     return {
-        x: Fp2.mul(constants.twist1, xconjgugate),
-        y: Fp2.mul(constants.twist2, yconjugate),
+        x: parameters_1.Fp2.mul(constants.twist1, xconjgugate),
+        y: parameters_1.Fp2.mul(constants.twist2, yconjugate),
     };
 }
-// Test 1: Optimal Ate Pairing over BN254
-// https://hackmd.io/kcEJAWISQ56eE6YpBnurgw
-// Field Extensions
-const beta = -1n; // quadratic non-residue in Fp
-const xi = [9n, 1n]; // quadratic and cubic non-residue in Fp2
-const Fp = new primeField_1.PrimeField(constants.p);
-const Fp2 = new extensionField_1.ExtensionField(Fp, [-beta, 0n, 1n]);
-const Fp12 = new extensionField_1.ExtensionFieldOverFq(Fp2, [
-    Fp2.neg(xi),
-    [0n],
-    [0n],
-    [0n],
-    [0n],
-    [0n],
-    [1n, 0n],
-]);
-// Curve E: y² = x³ + 3 over Fp
-const E = new ellipticCurve_1.EllipticCurveOverFp(0n, 3n, Fp);
-// Generator of E(Fp)[r] = E(Fp)
-let G1 = { x: 1n, y: 2n };
-// Twisted curve E': y² = x³ + 3/xi over Fp2
-const a2 = [0n];
-const b2 = Fp2.div([3n, 0n], xi);
-const tE = new ellipticCurve_1.EllipticCurveOverFq(a2, b2, Fp2);
-// Generator of E'(Fp2)[r]
-const G2 = {
-    x: [
-        10857046999023057135944570762232829481370756359578518086990519993285655852781n,
-        11559732032986387107991004021392285783925812861821192530917403151452391805634n,
-    ],
-    y: [
-        8495653923123431417604973247489272438418190587263600148770280649306958101930n,
-        4082367875863433681332203403145435568316851327593401208105741076214120093531n,
-    ],
-};
-// Curve y² = x³ + 3 over Fp12
-const E12 = new ellipticCurve_1.EllipticCurveOverFqOverFq([[0n]], [[3n]], Fp12);
-let tQ = twist(G2, tE);
-const R = twist(tE.escalarMul(G2, 77n), tE); // Just to play a little bit
-(0, chai_1.assert)(E12.is_on_curve(tQ), "The twist is not working");
-(0, chai_1.assert)(E12.is_on_curve(R), "The twist is not working");
-const P = G1;
-const Q = G2;
-const e = optimal_ate_bn254(P, Q, Fp12);
-// Let's check the bilinearity of the pairing
-const P2 = E.escalarMul(P, 2n);
-const P12 = E.escalarMul(P, 12n);
-const Q2 = tE.escalarMul(Q, 2n);
-const Q12 = tE.escalarMul(Q, 12n);
-const e1 = optimal_ate_bn254(P2, Q12, Fp12);
-const e2 = Fp12.exp(optimal_ate_bn254(P, Q12, Fp12), 2n);
-const e3 = Fp12.exp(optimal_ate_bn254(P2, Q, Fp12), 12n);
-const e4 = Fp12.exp(optimal_ate_bn254(P, Q, Fp12), 24n);
-const e5 = optimal_ate_bn254(P12, Q2, Fp12);
-(0, chai_1.assert)(Fp12.eq(e1, e2) && Fp12.eq(e1, e3) && Fp12.eq(e1, e4) && Fp12.eq(e1, e5), "The pairing is not bilinear");
-// More examples
-const P1005 = E.escalarMul(P, 1005n);
-const P1788 = E.escalarMul(P, 1788n);
-const Q1005 = tE.escalarMul(Q, 1005n);
-const Q1788 = tE.escalarMul(Q, 1788n);
-const e6 = optimal_ate_bn254(P1005, Q1788, Fp12);
-const e7 = Fp12.exp(optimal_ate_bn254(P, Q1788, Fp12), 1005n);
-const e8 = Fp12.exp(optimal_ate_bn254(P1005, Q, Fp12), 1788n);
-const e9 = Fp12.exp(optimal_ate_bn254(P, Q, Fp12), 1788n * 1005n);
-const e10 = optimal_ate_bn254(P1788, Q1005, Fp12);
-(0, chai_1.assert)(Fp12.eq(e6, e7) && Fp12.eq(e6, e8) && Fp12.eq(e6, e9) && Fp12.eq(e6, e10), "The pairing is not bilinear");
 //# sourceMappingURL=optimal_ate_pairing.js.map

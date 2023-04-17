@@ -1,23 +1,36 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const extensionField_1 = require("../extensionField");
-const primeField_1 = require("../primeField");
+const chai_1 = require("chai");
+const parameters_1 = require("./parameters");
+const optimal_ate_pairing_1 = require("./optimal_ate_pairing");
 // Test 1: Optimal Ate Pairing over BN12-254
-// https://hackmd.io/@jpw/bn254
-const x = 4965661367192848881n;
-const t = 6n * x ** 2n + 1n; // This is not necessary at all
-const p = 36n * x ** 4n + 36n * x ** 3n + 24n * x ** 2n + 6n * x + 1n;
-const r = 36n * x ** 4n + 36n * x ** 3n + 18n * x ** 2n + 6n * x + 1n;
-// Field Extensions
-const beta = -1n; // quadratic non-residue in Fp
-const xi = [9n, 1n]; // quadratic and cubic non-residue in Fp2
-const Fp = new primeField_1.PrimeField(p);
-const Fp2 = new extensionField_1.ExtensionField(Fp, [-beta, 0n, 1n]);
-const Fp6 = new extensionField_1.ExtensionFieldOverFq(Fp2, [Fp2.neg(xi), [0n], [0n], [1n, 0n]]);
-const Fp12a = new extensionField_1.ExtensionFieldOverFqOverFq(Fp6, [[[0n, 0n], [1n, 0n], [0n, 0n]], [[0n]], [[1n, 0n], [0n, 0n], [0n, 0n]]]);
-const Fp12b = new extensionField_1.ExtensionFieldOverFq(Fp2, [Fp2.neg(xi), [0n], [0n], [0n], [0n], [0n], [1n, 0n]]);
-const a = [[1n, 2n], [3n, 4n], [5n, 6n], [2n, 3n]];
-console.log(Fp12a.degree);
-console.log(Fp12b.degree);
-// const Fp12 = new ExtensionFieldOverFq(Fp6, [xi, [0n], [0n], [1n, 0n]]);
+let tQ = (0, optimal_ate_pairing_1.twist)(parameters_1.G2, parameters_1.tE);
+const R = (0, optimal_ate_pairing_1.twist)(parameters_1.tE.escalarMul(parameters_1.G2, 77n), parameters_1.tE); // Just to play a little bit
+(0, chai_1.assert)(parameters_1.E12.is_on_curve(tQ), "The twist is not working");
+(0, chai_1.assert)(parameters_1.E12.is_on_curve(R), "The twist is not working");
+const P = parameters_1.G1;
+const Q = parameters_1.G2;
+const e = (0, optimal_ate_pairing_1.optimal_ate_bn254)(P, Q, parameters_1.Fp12);
+// Let's check the bilinearity of the pairing
+const P2 = parameters_1.E.escalarMul(P, 2n);
+const P12 = parameters_1.E.escalarMul(P, 12n);
+const Q2 = parameters_1.tE.escalarMul(Q, 2n);
+const Q12 = parameters_1.tE.escalarMul(Q, 12n);
+const e1 = (0, optimal_ate_pairing_1.optimal_ate_bn254)(P2, Q12, parameters_1.Fp12);
+const e2 = parameters_1.Fp12.exp((0, optimal_ate_pairing_1.optimal_ate_bn254)(P, Q12, parameters_1.Fp12), 2n);
+const e3 = parameters_1.Fp12.exp((0, optimal_ate_pairing_1.optimal_ate_bn254)(P2, Q, parameters_1.Fp12), 12n);
+const e4 = parameters_1.Fp12.exp((0, optimal_ate_pairing_1.optimal_ate_bn254)(P, Q, parameters_1.Fp12), 24n);
+const e5 = (0, optimal_ate_pairing_1.optimal_ate_bn254)(P12, Q2, parameters_1.Fp12);
+(0, chai_1.assert)(parameters_1.Fp12.eq(e1, e2) && parameters_1.Fp12.eq(e1, e3) && parameters_1.Fp12.eq(e1, e4) && parameters_1.Fp12.eq(e1, e5), "The pairing is not bilinear");
+// More examples
+const P1005 = parameters_1.E.escalarMul(P, 1005n);
+const P1788 = parameters_1.E.escalarMul(P, 1788n);
+const Q1005 = parameters_1.tE.escalarMul(Q, 1005n);
+const Q1788 = parameters_1.tE.escalarMul(Q, 1788n);
+const e6 = (0, optimal_ate_pairing_1.optimal_ate_bn254)(P1005, Q1788, parameters_1.Fp12);
+const e7 = parameters_1.Fp12.exp((0, optimal_ate_pairing_1.optimal_ate_bn254)(P, Q1788, parameters_1.Fp12), 1005n);
+const e8 = parameters_1.Fp12.exp((0, optimal_ate_pairing_1.optimal_ate_bn254)(P1005, Q, parameters_1.Fp12), 1788n);
+const e9 = parameters_1.Fp12.exp((0, optimal_ate_pairing_1.optimal_ate_bn254)(P, Q, parameters_1.Fp12), 1788n * 1005n);
+const e10 = (0, optimal_ate_pairing_1.optimal_ate_bn254)(P1788, Q1005, parameters_1.Fp12);
+(0, chai_1.assert)(parameters_1.Fp12.eq(e6, e7) && parameters_1.Fp12.eq(e6, e8) && parameters_1.Fp12.eq(e6, e9) && parameters_1.Fp12.eq(e6, e10), "The pairing is not bilinear");
 //# sourceMappingURL=playground.js.map

@@ -6,7 +6,6 @@ import {
 import { ExtensionField, ExtensionFieldOverFq } from "../extensionField";
 import { PrimeField } from "../primeField";
 import { p } from "./constants";
-import { twist } from "./optimal_ate_pairing";
 
 // BN254 curve parameters
 // https://hackmd.io/kcEJAWISQ56eE6YpBnurgw

@@ -1,16 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.twist = exports.optimal_ate_bn254 = void 0;
+exports.twist = exports.verify_pairing_identity = exports.optimal_ate_bn254 = void 0;
 const chai_1 = require("chai");
 const common_1 = require("./common");
 const constants = require("./constants");
 const parameters_1 = require("./parameters");
-/*
- This is the optimal ate pairing
- For sure, Q is assumed to be from the (only) subgroup of E'[r] over Fp2
- P is assumed to be from the (only) subgroup of E[r] over Fp. In fact, E[r]=E for the BN254
- Check https://hackmd.io/kcEJAWISQ56eE6YpBnurgw
-*/
+/**
+ * It computes the Miller loop for the optimal Ate pairing over the BN254 curve and the last two lines.
+ * Hence, it performs all the computations of the optimal Ate pairing except for the final exponentiation.
+ * Q is assumed to be from the (only) subgroup of E'[r] over Fp2.
+ * P is assumed to be from the (only) subgroup of E[r] over Fp. In fact, E[r]=E for the BN254.
+ * Check [here](https://hackmd.io/kcEJAWISQ56eE6YpBnurgw) for more information.
+ */
 function Miller_loop_Ate_BN254(Q, P, // this point is actually over Fp
 Fq, E) {
     if (E.is_zero(Q) || E.is_zero(P)) {
@@ -52,8 +53,8 @@ Fq, E) {
 function conjugateFp2(a) {
     return [a[0], -a[1]];
 }
-function conjugateFp12(a, Fq) {
-    return [a[0], Fq.neg(a[1]), a[2], Fq.neg(a[3]), a[4], Fq.neg(a[5])];
+function conjugateFp12(a) {
+    return [a[0], parameters_1.Fp2.neg(a[1]), a[2], parameters_1.Fp2.neg(a[3]), a[4], parameters_1.Fp2.neg(a[5])];
 }
 function Frobenius_operator1(f, Fq) {
     const conjugates = [];
@@ -93,11 +94,10 @@ function Frobenius_operator3(f, Fq) {
         Fq.mul(constants.gamma35, conjugates[5]),
     ];
 }
-// Final exponentiation
-function final_expontiation(Fq, f) {
+function final_expontiation(f, Fq) {
     // a] easy part
     // first, compute f^(p^6-1)=conjugate(f) · f^-1
-    let conjugatef = conjugateFp12(f, Fq.Fq);
+    let conjugatef = conjugateFp12(f);
     const feasy1 = Fq.mul(conjugatef, Fq.inv(f));
     // second, compute feasy1^(p^2+1) = feasy1^(p^2) · feasy1
     const feasy2 = Frobenius_operator2(feasy1, Fq.Fq);
@@ -114,12 +114,12 @@ function final_expontiation(Fq, f) {
     const mxp3 = Frobenius_operator1(mx3, Fq.Fq);
     const mx2p2 = Frobenius_operator2(mx2, Fq.Fq);
     const y0 = Fq.mul(Fq.mul(mp, mp2), mp3);
-    const y1 = conjugateFp12(feasy, Fq.Fq);
+    const y1 = conjugateFp12(feasy);
     const y2 = mx2p2;
-    const y3 = conjugateFp12(mxp, Fq.Fq);
-    const y4 = conjugateFp12(Fq.mul(mx, mxp2), Fq.Fq);
-    const y5 = conjugateFp12(mx2, Fq.Fq);
-    const y6 = conjugateFp12(Fq.mul(mx3, mxp3), Fq.Fq);
+    const y3 = conjugateFp12(mxp);
+    const y4 = conjugateFp12(Fq.mul(mx, mxp2));
+    const y5 = conjugateFp12(mx2);
+    const y6 = conjugateFp12(Fq.mul(mx3, mxp3));
     // vectorial addition chain technique
     const T01 = Fq.mul(Fq.mul(Fq.exp(y6, 2n), y4), y5);
     const T11 = Fq.mul(T01, Fq.mul(y3, y5));
@@ -131,36 +131,55 @@ function final_expontiation(Fq, f) {
     const T04 = Fq.mul(Fq.exp(T03, 2n), T14);
     return T04;
 }
-//TODO: Implement multiple pairings at once
-// Optimal ate pairing computation over the BN12-254 curve
-// https://hackmd.io/@jpw/bn254#Optimal-Ate-pairing
-function optimal_ate_bn254(P, Q, Fq) {
+/**
+ * It computes the optimal Ate pairing over the BN254 curve.
+ * Check [here](https://hackmd.io/kcEJAWISQ56eE6YpBnurgw) for more information.
+ */
+function optimal_ate_bn254_nfe(P, Q) {
     if (parameters_1.E.is_zero(P) && parameters_1.tE.is_zero(Q) === false) {
         // Check that Q belongs to E'(Fp2)[r]
-        const R = twist_endomorphism(Q);
-        const S = parameters_1.tE.escalarMul(Q, 6n * constants.x ** 2n);
-        (0, chai_1.assert)(Fq.Fq.eq(R.x, S.x) && Fq.Fq.eq(R.y, S.y), "Q doest not belong to E'(Fp2)[r]");
+        (0, chai_1.assert)(subgroup_check_G2(Q), "Q does not belong to E'(Fp2)[r]");
         return [[1n]];
     }
     else if (parameters_1.E.is_zero(P) === false && parameters_1.tE.is_zero(Q)) {
-        (0, chai_1.assert)(parameters_1.E.is_on_curve(P), "P doest not belong to E(Fp)[r]");
+        // Check that P belongs to E(Fp)[r]
+        (0, chai_1.assert)(subgroup_check_G1(P), "P does not belong to E(Fp)[r]");
         return [[1n]];
     }
     else if (parameters_1.E.is_zero(P) && parameters_1.tE.is_zero(Q)) {
         return [[1n]];
     }
     // a] Check that P belongs to E(Fp)[r] = E(Fp)
-    (0, chai_1.assert)(parameters_1.E.is_on_curve(P), "P doest not belong to E(Fp)[r]");
+    (0, chai_1.assert)(subgroup_check_G1(P), "P does not belong to E(Fp)[r]");
     // b] Check that Q belongs to E'(Fp2)[r]
-    const R = twist_endomorphism(Q);
-    const S = parameters_1.tE.escalarMul(Q, 6n * constants.x ** 2n);
-    (0, chai_1.assert)(Fq.Fq.eq(R.x, S.x) && Fq.Fq.eq(R.y, S.y), "Q doest not belong to E'(Fp2)[r]");
+    (0, chai_1.assert)(subgroup_check_G2(Q), "Q does not belong to E'(Fp2)[r]");
     const Pm = { x: [P.x], y: [P.y] };
     // c] Compute the pairing
-    const f = Miller_loop_Ate_BN254(Q, Pm, Fq, parameters_1.tE);
-    return final_expontiation(Fq, f);
+    const f = Miller_loop_Ate_BN254(Q, Pm, parameters_1.Fp12, parameters_1.tE);
+    return f;
+}
+function optimal_ate_bn254(P, Q) {
+    const f = optimal_ate_bn254_nfe(P, Q);
+    return final_expontiation(f, parameters_1.Fp12);
 }
 exports.optimal_ate_bn254 = optimal_ate_bn254;
+/**
+ * It checks whether e(P1, Q1) · e(P2, Q2) · ... · e(Pn, Qn) = 1
+ */
+function verify_pairing_identity(Ps, Qs) {
+    (0, chai_1.assert)(Ps.length === Qs.length, "Ps and Qs must have the same length");
+    const f = Ps.reduce((acc, P, i) => parameters_1.Fp12.mul(acc, optimal_ate_bn254_nfe(P, Qs[i])), [[1n]]);
+    return parameters_1.Fp12.eq(final_expontiation(f, parameters_1.Fp12), [[1n]]);
+}
+exports.verify_pairing_identity = verify_pairing_identity;
+function subgroup_check_G1(P) {
+    return parameters_1.E.is_on_curve(P);
+}
+function subgroup_check_G2(Q) {
+    const R = endomorphism(Q);
+    const S = parameters_1.tE.escalarMul(Q, 6n * constants.x ** 2n);
+    return parameters_1.Fp2.eq(R.x, S.x) && parameters_1.Fp2.eq(R.y, S.y);
+}
 // This function sends points from E'(Fp2) to E(Fp12)
 function twist(P, E) {
     if (E.is_zero(P))
@@ -171,7 +190,7 @@ function twist(P, E) {
 }
 exports.twist = twist;
 // This function sends points from E'(Fp2) to E'(Fp2)
-function twist_endomorphism(P) {
+function endomorphism(P) {
     if (parameters_1.tE.is_zero(P))
         return null;
     const xconjgugate = conjugateFp2(P.x);

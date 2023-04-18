@@ -3,7 +3,7 @@ import { ExtensionField } from "../extensionField";
 import { p } from "./constants";
 
 // I have used the following function to generate and hardcode all the Frobenius constants gammaij
-// p satisfies p === 1 (mod 6)
+// It assumes p satisfies p === 1 (mod 6)
 export function Frobenius_constants(Fq: ExtensionField): bigint[][] {
     const xi = [9n, 1n];
     const e1 = (p - 1n) / 6n;

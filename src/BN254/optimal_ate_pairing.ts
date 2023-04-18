@@ -8,14 +8,15 @@ import {
 import { ExtensionField, ExtensionFieldOverFq } from "../extensionField";
 import { line } from "./common";
 import * as constants from "./constants";
-import { E, tE, E12, Fp2, Fp12, G1, G2 } from "./parameters";
+import { E, tE, Fp2, Fp12 } from "./parameters";
 
-/* 
- This is the optimal ate pairing
- For sure, Q is assumed to be from the (only) subgroup of E'[r] over Fp2
- P is assumed to be from the (only) subgroup of E[r] over Fp. In fact, E[r]=E for the BN254
- Check https://hackmd.io/kcEJAWISQ56eE6YpBnurgw
-*/
+/**
+ * It computes the Miller loop for the optimal Ate pairing over the BN254 curve and the last two lines.
+ * Hence, it performs all the computations of the optimal Ate pairing except for the final exponentiation.
+ * Q is assumed to be from the (only) subgroup of E'[r] over Fp2.
+ * P is assumed to be from the (only) subgroup of E[r] over Fp. In fact, E[r]=E for the BN254.
+ * Check [here](https://hackmd.io/kcEJAWISQ56eE6YpBnurgw) for more information.
+ */
 function Miller_loop_Ate_BN254(
     Q: PointOverFq,
     P: PointOverFq, // this point is actually over Fp
@@ -66,8 +67,8 @@ function conjugateFp2(a: bigint[]): bigint[] {
     return [a[0], -a[1]];
 }
 
-function conjugateFp12(a: bigint[][], Fq: ExtensionField): bigint[][] {
-    return [a[0], Fq.neg(a[1]), a[2], Fq.neg(a[3]), a[4], Fq.neg(a[5])];
+function conjugateFp12(a: bigint[][]): bigint[][] {
+    return [a[0], Fp2.neg(a[1]), a[2], Fp2.neg(a[3]), a[4], Fp2.neg(a[5])];
 }
 
 function Frobenius_operator1(f: bigint[][], Fq: ExtensionField): bigint[][] {
@@ -113,14 +114,13 @@ function Frobenius_operator3(f: bigint[][], Fq: ExtensionField): bigint[][] {
     ];
 }
 
-// Final exponentiation
 function final_expontiation(
-    Fq: ExtensionFieldOverFq,
-    f: bigint[][]
+    f: bigint[][],
+    Fq: ExtensionFieldOverFq
 ): bigint[][] {
     // a] easy part
     // first, compute f^(p^6-1)=conjugate(f) · f^-1
-    let conjugatef = conjugateFp12(f, Fq.Fq);
+    let conjugatef = conjugateFp12(f);
 
     const feasy1 = Fq.mul(conjugatef, Fq.inv(f));
 
@@ -141,12 +141,12 @@ function final_expontiation(
     const mx2p2 = Frobenius_operator2(mx2, Fq.Fq);
 
     const y0 = Fq.mul(Fq.mul(mp, mp2), mp3);
-    const y1 = conjugateFp12(feasy, Fq.Fq);
+    const y1 = conjugateFp12(feasy);
     const y2 = mx2p2;
-    const y3 = conjugateFp12(mxp, Fq.Fq);
-    const y4 = conjugateFp12(Fq.mul(mx, mxp2), Fq.Fq);
-    const y5 = conjugateFp12(mx2, Fq.Fq);
-    const y6 = conjugateFp12(Fq.mul(mx3, mxp3), Fq.Fq);
+    const y3 = conjugateFp12(mxp);
+    const y4 = conjugateFp12(Fq.mul(mx, mxp2));
+    const y5 = conjugateFp12(mx2);
+    const y6 = conjugateFp12(Fq.mul(mx3, mxp3));
 
     // vectorial addition chain technique
 
@@ -162,54 +162,71 @@ function final_expontiation(
     return T04;
 }
 
-//TODO: Implement multiple pairings at once
-
-// Optimal ate pairing computation over the BN12-254 curve
-// https://hackmd.io/@jpw/bn254#Optimal-Ate-pairing
-export function optimal_ate_bn254(
-    P: PointOverFp,
-    Q: PointOverFq,
-    Fq: ExtensionFieldOverFq
-): bigint[][] {
+/**
+ * It computes the optimal Ate pairing over the BN254 curve.
+ * Check [here](https://hackmd.io/kcEJAWISQ56eE6YpBnurgw) for more information.
+ */
+function optimal_ate_bn254_nfe(P: PointOverFp, Q: PointOverFq): bigint[][] {
     if (E.is_zero(P) && tE.is_zero(Q) === false) {
         // Check that Q belongs to E'(Fp2)[r]
-        const R = twist_endomorphism(Q);
-        const S = tE.escalarMul(Q, 6n * constants.x ** 2n);
-        assert(
-            Fq.Fq.eq(R.x, S.x) && Fq.Fq.eq(R.y, S.y),
-            "Q doest not belong to E'(Fp2)[r]"
-        );
-
+        assert(subgroup_check_G2(Q), "Q does not belong to E'(Fp2)[r]");
         return [[1n]];
     } else if (E.is_zero(P) === false && tE.is_zero(Q)) {
-        assert(E.is_on_curve(P), "P doest not belong to E(Fp)[r]");
-
+        // Check that P belongs to E(Fp)[r]
+        assert(subgroup_check_G1(P), "P does not belong to E(Fp)[r]");
         return [[1n]];
     } else if (E.is_zero(P) && tE.is_zero(Q)) {
         return [[1n]];
     }
 
     // a] Check that P belongs to E(Fp)[r] = E(Fp)
-    assert(E.is_on_curve(P), "P doest not belong to E(Fp)[r]");
+    assert(subgroup_check_G1(P), "P does not belong to E(Fp)[r]");
 
     // b] Check that Q belongs to E'(Fp2)[r]
-    const R = twist_endomorphism(Q);
-    const S = tE.escalarMul(Q, 6n * constants.x ** 2n);
-    assert(
-        Fq.Fq.eq(R.x, S.x) && Fq.Fq.eq(R.y, S.y),
-        "Q doest not belong to E'(Fp2)[r]"
-    );
+    assert(subgroup_check_G2(Q), "Q does not belong to E'(Fp2)[r]");
 
     const Pm = { x: [P.x], y: [P.y] };
 
     // c] Compute the pairing
-    const f = Miller_loop_Ate_BN254(Q, Pm, Fq, tE);
+    const f = Miller_loop_Ate_BN254(Q, Pm, Fp12, tE);
 
-    return final_expontiation(Fq, f);
+    return f;
+}
+
+export function optimal_ate_bn254(P: PointOverFp, Q: PointOverFq): bigint[][] {
+    const f = optimal_ate_bn254_nfe(P, Q);
+    return final_expontiation(f, Fp12);
+}
+
+/**
+ * It checks whether e(P1, Q1) · e(P2, Q2) · ... · e(Pn, Qn) = 1
+ */
+export function verify_pairing_identity(Ps: PointOverFp[], Qs: PointOverFq[]) {
+    assert(Ps.length === Qs.length, "Ps and Qs must have the same length");
+
+    const f = Ps.reduce(
+        (acc, P, i) => Fp12.mul(acc, optimal_ate_bn254_nfe(P, Qs[i])),
+        [[1n]]
+    );
+
+    return Fp12.eq(final_expontiation(f, Fp12), [[1n]]);
+}
+
+function subgroup_check_G1(P: PointOverFp): boolean {
+    return E.is_on_curve(P);
+}
+
+function subgroup_check_G2(Q: PointOverFq): boolean {
+    const R = endomorphism(Q);
+    const S = tE.escalarMul(Q, 6n * constants.x ** 2n);
+    return Fp2.eq(R.x, S.x) && Fp2.eq(R.y, S.y);
 }
 
 // This function sends points from E'(Fp2) to E(Fp12)
-export function twist(P: PointOverFq, E: EllipticCurveOverFq): PointOverFqOverFq {
+export function twist(
+    P: PointOverFq,
+    E: EllipticCurveOverFq
+): PointOverFqOverFq {
     if (E.is_zero(P)) return null;
 
     const x = [[0n], [0n], P.x, [0n], [0n], [0n]];
@@ -219,7 +236,7 @@ export function twist(P: PointOverFq, E: EllipticCurveOverFq): PointOverFqOverFq
 }
 
 // This function sends points from E'(Fp2) to E'(Fp2)
-function twist_endomorphism(P: PointOverFq): PointOverFq {
+function endomorphism(P: PointOverFq): PointOverFq {
     if (tE.is_zero(P)) return null;
 
     const xconjgugate = conjugateFp2(P.x);

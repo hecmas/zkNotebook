@@ -1,13 +1,13 @@
 import { assert } from "chai";
 import { PointOverFp, PointOverFq } from "../ellipticCurve";
 import { r } from "./constants";
-import { optimal_ate_bn254 } from "./optimal_ate_pairing";
-import { E, tE, G1, G2, Fp12 } from "./parameters";
+import { verify_pairing_identity } from "./optimal_ate_pairing";
+import { E, tE, G1, G2 } from "./parameters";
 const bigintRnd = require("bigint-rnd");
 
 function hash_to_G1_mock(msg: string) {
     const ell = msg.length;
-    const rand = BigInt((ell ** 5 + 3) ** 5); // a very complex random function ;)
+    const rand = BigInt((ell ** 5 + 3) ** 5); // a very complex hash function ;)
     return E.escalarMul(G1, rand);
 }
 
@@ -25,10 +25,12 @@ function sign(sk: bigint, msg: string) {
 
 function verify(PK: PointOverFq, msg: string, SIG: PointOverFp) {
     const h = hash_to_G1_mock(msg);
-    // e(SIG, G2) = e(h, PK)
-    const lhs = optimal_ate_bn254(SIG, G2, Fp12);
-    const rhs = optimal_ate_bn254(h, PK, Fp12);
-    return Fp12.eq(lhs, rhs);
+    const nh = E.neg(h);
+    // e(SIG, G2) = e(h, PK) <==> e(SIG, G2) · e(-h, PK) = 1
+    return verify_pairing_identity([SIG, nh], [G2, PK]);
+    // const lhs = optimal_ate_bn254(SIG, G2);
+    // const rhs = optimal_ate_bn254(h, PK);
+    // return Fp12.eq(lhs, rhs);
 }
 
 function verify_multiple(
@@ -37,12 +39,14 @@ function verify_multiple(
     SIGs: PointOverFp[]
 ) {
     const hashes = msgs.map(hash_to_G1_mock);
-    const rhsItems = hashes.map((h, i) => optimal_ate_bn254(h, PKs[i], Fp12));
     const aSIG = SIGs.reduce((acc, SIG) => E.add(acc, SIG), E.zero);
-    // e(aSIG,G2) = e(h1,PK1) * e(h2,PK2) * e(h3,PK3)
-    const lhs = optimal_ate_bn254(aSIG, G2, Fp12);
-    const rhs = rhsItems.reduce((acc, item) => Fp12.mul(acc, item), Fp12.one);
-    return Fp12.eq(lhs, rhs);
+    const nASIG = E.neg(aSIG);
+    // e(aSIG,G2) = e(h1,PK1) · e(h2,PK2) · e(h3,PK3) <==> e(-aSIG,G2) · e(h1,PK1) · e(h2,PK2) · e(h3,PK3) = 1
+    return verify_pairing_identity([nASIG, ...hashes], [G2, ...PKs]);
+    // const rhsItems = hashes.map((h, i) => optimal_ate_bn254(h, PKs[i]));
+    // const lhs = optimal_ate_bn254(aSIG, G2);
+    // const rhs = rhsItems.reduce((acc, item) => Fp12.mul(acc, item), Fp12.one);
+    // return Fp12.eq(lhs, rhs);
 }
 
 function verify_multiple_one_message(
@@ -53,10 +57,12 @@ function verify_multiple_one_message(
     const h = hash_to_G1_mock(msg);
     const aPK = PKs.reduce((acc, PK) => tE.add(acc, PK), tE.zero);
     const aSIG = SIGs.reduce((acc, SIG) => E.add(acc, SIG), E.zero);
-    // e(aSIG,G2) = e(h,PK1) * e(h,PK2) * e(h,PK3) = e(ah,aPK)
-    const lhs = optimal_ate_bn254(aSIG, G2, Fp12);
-    const rhs = optimal_ate_bn254(h, aPK, Fp12);
-    return Fp12.eq(lhs, rhs);
+    const nASIG = E.neg(aSIG);
+    // e(aSIG,G2) = e(h,PK1) · e(h,PK2) · e(h,PK3) = e(ah,aPK) <==> e(-aSIG,G2) · e(h,aPK) = 1
+    return verify_pairing_identity([nASIG, h], [G2, aPK]);
+    // const lhs = optimal_ate_bn254(aSIG, G2);
+    // const rhs = optimal_ate_bn254(h, aPK);
+    // return Fp12.eq(lhs, rhs);
 }
 
 // https://xn--2-umb.com/22/bls-signatures/
@@ -98,17 +104,21 @@ assert(verify(PK2, msg2, SIG2), "Signature verification failed");
 assert(verify(PK3, msg3, SIG3), "Signature verification failed");
 
 // Or we can aggregate them and verify the aggregated signature
-// e(aSIG,G2) = e(h1,PK1) * e(h2,PK2) * e(h3,PK3) = e(ah,aPK)
+// e(aSIG,G2) = e(h1,PK1) · e(h2,PK2) · e(h3,PK3)
 assert(
     verify_multiple([PK1, PK2, PK3], [msg1, msg2, msg3], [SIG1, SIG2, SIG3]),
     "Signature verification failed"
 );
 
-// 3. Multiple signers and one messages
+// 3. Multiple signers and one message
 const [sk4, PK4] = keyGen();
 const [sk5, PK5] = keyGen();
 const [sk6, PK6] = keyGen();
 const SIG4 = sign(sk4, msg);
 const SIG5 = sign(sk5, msg);
 const SIG6 = sign(sk6, msg);
-assert(verify_multiple_one_message([PK4, PK5, PK6], msg, [SIG4, SIG5, SIG6]), "Signature verification failed");
+// e(aSIG,G2) = e(h,PK1) · e(h,PK2) · e(h,PK3) = e(ah,aPK)
+assert(
+    verify_multiple_one_message([PK4, PK5, PK6], msg, [SIG4, SIG5, SIG6]),
+    "Signature verification failed"
+);

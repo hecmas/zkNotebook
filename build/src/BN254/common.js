@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.line = exports.twist_constants = exports.Frobenius_constants = void 0;
 const constants_1 = require("./constants");
 // I have used the following function to generate and hardcode all the Frobenius constants gammaij
-// p satisfies p === 1 (mod 6)
+// It assumes p satisfies p === 1 (mod 6)
 function Frobenius_constants(Fq) {
     const xi = [9n, 1n];
     const e1 = (constants_1.p - 1n) / 6n;

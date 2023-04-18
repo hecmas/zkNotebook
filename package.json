@@ -36,6 +36,7 @@
     "typescript": "^4.9.3"
   },
   "dependencies": {
+    "bigint-isqrt": "^0.3.2",
     "bigint-rnd": "^1.0.2",
     "sha3": "^2.1.4"
   }

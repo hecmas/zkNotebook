@@ -1,5 +1,6 @@
 import { PrimeField } from "./primeField";
 import { ExtensionField, ExtensionFieldOverFq } from "./extensionField";
+const sqrt = require("bigint-isqrt");
 
 export interface PointOverFp {
     x: bigint;
@@ -15,6 +16,18 @@ export interface PointOverFqOverFq {
     x: bigint[][];
     y: bigint[][];
 }
+
+// TODO: Implement Schoof's algorithm
+// function Schoof_algorithm(a: bigint, b: bigint, p: bigint){
+//     let S = [];
+//     let acc = 1n;
+//     let prime = 1;
+//     while (acc <= 4n * sqrt(p)) {
+//         while (Math.isPrime(prime)
+//         S.push(acc);
+//         acc *= 2n;
+//     }
+// }
 
 // /*
 //     * Elliptic curve over Fp
@@ -44,6 +57,15 @@ export class EllipticCurveOverFp {
     // Public Accessors
     get zero(): null {
         return null;
+    }
+
+    // Comparators
+    eq(P: PointOverFp, Q: PointOverFp): boolean {
+        return this.Fp.eq(P.x,Q.x) && this.Fp.eq(P.y,Q.y);
+    }
+
+    neq(P: PointOverFp, Q: PointOverFp): boolean {
+        return !this.eq(P, Q);
     }
 
     // Check if a point is the identity element
@@ -158,6 +180,15 @@ export class EllipticCurveOverFq {
         return null;
     }
 
+    // Comparators
+    eq(P: PointOverFq, Q: PointOverFq): boolean {
+        return this.Fq.eq(P.x,Q.x) && this.Fq.eq(P.y,Q.y);
+    }
+
+    neq(P: PointOverFq, Q: PointOverFq): boolean {
+        return !this.eq(P, Q);
+    }
+
     // Check if a point is the identity element
     is_zero(P: PointOverFq): boolean {
         return P === this.zero;
@@ -268,6 +299,15 @@ export class EllipticCurveOverFqOverFq {
     // Public Accessors
     get zero(): null {
         return null;
+    }
+
+    // Comparators
+    eq(P: PointOverFqOverFq, Q: PointOverFqOverFq): boolean {
+        return this.Fq.eq(P.x,Q.x) && this.Fq.eq(P.y,Q.y);
+    }
+
+    neq(P: PointOverFqOverFq, Q: PointOverFqOverFq): boolean {
+        return !this.eq(P, Q);
     }
 
     // Check if a point is the identity element

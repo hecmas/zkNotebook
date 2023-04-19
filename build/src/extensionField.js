@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ExtensionFieldOverFqOverFq = exports.ExtensionFieldOverFq = exports.ExtensionField = void 0;
+exports.degree = exports.ExtensionFieldOverFqOverFq = exports.ExtensionFieldOverFq = exports.ExtensionField = void 0;
 // TODO: I have implemented depth-3 field extensions, but it would be good to do it more generic
 /*
     A polynomial p(x) = a0 + a1·x + a2·x^2 + ... + an·x^n  is represented
@@ -537,6 +537,7 @@ function degree(a) {
     }
     return d;
 }
+exports.degree = degree;
 function degree2(a) {
     let d = a.length - 1;
     let dd = degree(a[d]);

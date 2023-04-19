@@ -3,7 +3,46 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const primeField_1 = require("./primeField");
 const parameters_1 = require("./BN254/parameters");
 const constants_1 = require("./BN254/constants");
+const extensionField_1 = require("./extensionField");
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
+// INSECURE: it should be obtained through a MPC protocol
+/**
+ * @input n: the upper bound of the polynomial degree. I.e. the polynomials that can be committed
+ * under this srs have degree in [0, n-1].
+ * @returns It outputs `[[1]_1,[s]_1,[s^2]_1,...,[s^{n-1}]_1,[1]_2,[s]_2]`, the srs used in the KZG PCS.
+ */
+function srs_mock(E, tE, G1, G2, r, n) {
+    const Fr = new primeField_1.PrimeField(r); // the scalar field of E
+    const s = bigintRnd(r);
+    let srs1 = [];
+    for (let i = 0; i < n; i++) {
+        const powerofs = Fr.exp(s, BigInt(i));
+        srs1.push(E.escalarMul(G1, powerofs));
+    }
+    let srs2 = [];
+    srs2.push(G2);
+    srs2.push(tE.escalarMul(G2, s));
+    return [srs1, srs2];
+}
+// Assume polynomial p(x) = a0 + a1·x + a2·x^2 + ... + ad·x^d 
+// is given as an array of its coefficients [a0, a1, a2, ..., ad]
+/**
+ * @input pol: a polynomial [a0, a1, a2, ..., ad] of appropriate degree.
+ * @returns It outputs the E point `[f(s)]_1 = a0[1]_1 + a1[s]_1 + ... + ad[s^d]_1`.
+ */
+function commit_polynomial(E, srs, pol) {
+    const [srs1,] = srs;
+    const d = (0, extensionField_1.degree)(pol);
+    if (d >= srs1.length) {
+        throw new Error("The polynomial degree is too large");
+    }
+    let com = E.zero;
+    for (let i = 0; i < d; i++) {
+        com = E.add(com, E.escalarMul(srs1[i], pol[i]));
+    }
+    return com;
+}
+// Let's implement the open protocol for KZG, which is a (non-)interactive protocol
 class Prover {
     E;
     G;
@@ -100,4 +139,7 @@ P.compute_and_send_first_message(V);
 V.compute_and_send_challenge(P);
 P.compute_and_send_second_message(V);
 V.verify();
-//# sourceMappingURL=schnoor_sigma_protocol.js.map
+const srs = srs_mock(parameters_1.E, parameters_1.tE, parameters_1.G1, parameters_1.G2, constants_1.r, 10n);
+const f = [1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n];
+console.log(commit_polynomial(parameters_1.E, srs, f));
+//# sourceMappingURL=KZG.js.map

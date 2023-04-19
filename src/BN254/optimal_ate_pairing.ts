@@ -23,10 +23,6 @@ function Miller_loop_Ate_BN254(
     Fq: ExtensionFieldOverFq,
     E: EllipticCurveOverFq
 ): bigint[][] {
-    if (E.is_zero(Q) || E.is_zero(P)) {
-        return Fq.one;
-    }
-
     let R = Q;
     let f = Fq.one;
     for (let i = constants.ate_loop_count.length - 2; i >= 0; i--) {
@@ -49,8 +45,8 @@ function Miller_loop_Ate_BN254(
         y: Fq.Fq.mul(constants.gamma13, yconjugate),
     };
 
-    const xpconjugate = [Qp.x[0], -Qp.x[1]];
-    const ypconjugate = [Qp.y[0], -Qp.y[1]];
+    const xpconjugate = conjugateFp2(Qp.x);
+    const ypconjugate = conjugateFp2(Qp.y);
     const S: PointOverFq = {
         x: Fq.Fq.mul(constants.gamma12, xpconjugate),
         y: Fq.Fq.mul(constants.gamma13, ypconjugate),
@@ -242,7 +238,7 @@ function endomorphism(P: PointOverFq): PointOverFq {
     const xconjgugate = conjugateFp2(P.x);
     const yconjugate = conjugateFp2(P.y);
     return {
-        x: Fp2.mul(constants.twist1, xconjgugate),
-        y: Fp2.mul(constants.twist2, yconjugate),
+        x: Fp2.mul(constants.gamma12, xconjgugate),
+        y: Fp2.mul(constants.gamma13, yconjugate),
     };
 }

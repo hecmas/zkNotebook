@@ -14,9 +14,6 @@ const parameters_1 = require("./parameters");
  */
 function Miller_loop_Ate_BN254(Q, P, // this point is actually over Fp
 Fq, E) {
-    if (E.is_zero(Q) || E.is_zero(P)) {
-        return Fq.one;
-    }
     let R = Q;
     let f = Fq.one;
     for (let i = constants.ate_loop_count.length - 2; i >= 0; i--) {
@@ -38,8 +35,8 @@ Fq, E) {
         x: Fq.Fq.mul(constants.gamma12, xconjgugate),
         y: Fq.Fq.mul(constants.gamma13, yconjugate),
     };
-    const xpconjugate = [Qp.x[0], -Qp.x[1]];
-    const ypconjugate = [Qp.y[0], -Qp.y[1]];
+    const xpconjugate = conjugateFp2(Qp.x);
+    const ypconjugate = conjugateFp2(Qp.y);
     const S = {
         x: Fq.Fq.mul(constants.gamma12, xpconjugate),
         y: Fq.Fq.mul(constants.gamma13, ypconjugate),
@@ -196,8 +193,8 @@ function endomorphism(P) {
     const xconjgugate = conjugateFp2(P.x);
     const yconjugate = conjugateFp2(P.y);
     return {
-        x: parameters_1.Fp2.mul(constants.twist1, xconjgugate),
-        y: parameters_1.Fp2.mul(constants.twist2, yconjugate),
+        x: parameters_1.Fp2.mul(constants.gamma12, xconjgugate),
+        y: parameters_1.Fp2.mul(constants.gamma13, yconjugate),
     };
 }
 //# sourceMappingURL=optimal_ate_pairing.js.map

@@ -137,6 +137,13 @@ class EllipticCurveOverFq {
     get zero() {
         return null;
     }
+    // Comparators
+    eq(P, Q) {
+        return this.Fq.eq(P.x, Q.x) && this.Fq.eq(P.y, Q.y);
+    }
+    neq(P, Q) {
+        return !this.eq(P, Q);
+    }
     // Check if a point is the identity element
     is_zero(P) {
         return P === this.zero;
@@ -227,6 +234,13 @@ class EllipticCurveOverFqOverFq {
     // Public Accessors
     get zero() {
         return null;
+    }
+    // Comparators
+    eq(P, Q) {
+        return this.Fq.eq(P.x, Q.x) && this.Fq.eq(P.y, Q.y);
+    }
+    neq(P, Q) {
+        return !this.eq(P, Q);
     }
     // Check if a point is the identity element
     is_zero(P) {

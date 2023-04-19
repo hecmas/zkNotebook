@@ -63,7 +63,7 @@
 //     ],
 // };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.twist2 = exports.twist1 = exports.gamma35 = exports.gamma34 = exports.gamma33 = exports.gamma32 = exports.gamma31 = exports.gamma25 = exports.gamma24 = exports.gamma23 = exports.gamma22 = exports.gamma21 = exports.gamma15 = exports.gamma14 = exports.gamma13 = exports.gamma12 = exports.gamma11 = exports.ate_loop_count = exports.embedding_degree = exports.r = exports.p = exports.t = exports.x = void 0;
+exports.gamma35 = exports.gamma34 = exports.gamma33 = exports.gamma32 = exports.gamma31 = exports.gamma25 = exports.gamma24 = exports.gamma23 = exports.gamma22 = exports.gamma21 = exports.gamma15 = exports.gamma14 = exports.gamma13 = exports.gamma12 = exports.gamma11 = exports.ate_loop_count = exports.embedding_degree = exports.r = exports.p = exports.t = exports.x = void 0;
 exports.x = 4965661367192848881n;
 exports.t = 147946756881789318990833708069417712967n; // 6n * x ** 2n + 1n
 exports.p = 21888242871839275222246405745257275088696311157297823662689037894645226208583n; // 36n * x ** 4n + 36n * x ** 3n + 24n * x ** 2n + 6n * x + 1n
@@ -129,13 +129,5 @@ exports.gamma34 = [
 exports.gamma35 = [
     8941241848238582420466759817324047081148088512956452953208002715982955420483n,
     10338197737521362862238855242243140895517409139741313354160881284257516364953n,
-];
-exports.twist1 = [
-    21575463638280843010398324269430826099269044274347216827212613867836435027261n,
-    10307601595873709700152284273816112264069230130616436755625194854815875713954n,
-];
-exports.twist2 = [
-    2821565182194536844548159561693502659359617185244120367078079554186484126554n,
-    3505843767911556378687030309984248845540243509899259641013678093033130930403n,
 ];
 //# sourceMappingURL=constants.js.map

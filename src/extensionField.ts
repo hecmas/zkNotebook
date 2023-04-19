@@ -567,7 +567,7 @@ export class ExtensionFieldOverFqOverFq implements FiniteField<bigint[][][]> {
     }
 }
 
-function degree(a: bigint[]): number {
+export function degree(a: bigint[]): number {
     let d = a.length - 1;
     while (d && a[d] === 0n) {
         d--;

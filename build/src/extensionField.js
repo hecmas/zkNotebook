@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.degree = exports.ExtensionFieldOverFqOverFq = exports.ExtensionFieldOverFq = exports.ExtensionField = void 0;
+exports.ExtensionFieldOverFqOverFq = exports.ExtensionFieldOverFq = exports.ExtensionField = void 0;
+const polynomials_1 = require("./polynomials");
 // TODO: I have implemented depth-3 field extensions, but it would be good to do it more generic
 /*
     A polynomial p(x) = a0 + a1·x + a2·x^2 + ... + an·x^n  is represented
@@ -28,8 +29,8 @@ class ExtensionField {
     }
     // Comparators
     eq(a, b) {
-        const dega = degree(a);
-        const degb = degree(b);
+        const dega = (0, polynomials_1.degree)(a);
+        const degb = (0, polynomials_1.degree)(b);
         if (dega === degb) {
             for (let i = 0; i < dega + 1; i++) {
                 if (a[i] !== b[i])
@@ -46,21 +47,21 @@ class ExtensionField {
     }
     // Basic Arithmetic
     mod(a) {
-        const dega = degree(a);
+        const dega = (0, polynomials_1.degree)(a);
         if (dega < this.degree) {
             const c = new Array(dega + 1);
             for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.mod(a[i]);
             }
-            const degc = degree(c);
+            const degc = (0, polynomials_1.degree)(c);
             return c.slice(0, degc + 1);
         }
-        let [, r] = euclidean_division(a, this.modulusCoeffs, this.Fp);
+        let [, r] = (0, polynomials_1.euclidean_division)(a, this.modulusCoeffs, this.Fp);
         return r;
     }
     add(a, b) {
-        const dega = degree(a);
-        const degb = degree(b);
+        const dega = (0, polynomials_1.degree)(a);
+        const degb = (0, polynomials_1.degree)(b);
         let maxdeg = Math.max(dega, degb);
         const c = new Array(maxdeg + 1);
         for (let i = 0; i < maxdeg + 1; i++) {
@@ -71,15 +72,15 @@ class ExtensionField {
         return this.mod(c);
     }
     neg(a) {
-        const c = new Array(degree(a) + 1);
-        for (let i = 0; i < degree(a) + 1; i++) {
+        const c = new Array((0, polynomials_1.degree)(a) + 1);
+        for (let i = 0; i < (0, polynomials_1.degree)(a) + 1; i++) {
             c[i] = this.Fp.neg(a[i]);
         }
         return this.mod(c);
     }
     sub(a, b) {
-        const dega = degree(a);
-        const degb = degree(b);
+        const dega = (0, polynomials_1.degree)(a);
+        const degb = (0, polynomials_1.degree)(b);
         const maxdeg = Math.max(dega, degb);
         const c = new Array(maxdeg + 1);
         for (let i = 0; i < maxdeg + 1; i++) {
@@ -94,8 +95,8 @@ class ExtensionField {
     //     return c;
     // }
     mul(a, b) {
-        const dega = degree(a);
-        const degb = degree(b);
+        const dega = (0, polynomials_1.degree)(a);
+        const degb = (0, polynomials_1.degree)(b);
         if (dega === 0) {
             if (degb === 0) {
                 return [this.Fp.mul(a[0], b[0])];
@@ -128,12 +129,12 @@ class ExtensionField {
     inv(a) {
         if (this.eq(a, this.zero))
             throw new Error("Zero has no multiplicative inverse");
-        const [, y] = egcd(this.modulusCoeffs, a, this);
+        const [, y] = (0, polynomials_1.egcd)(this.modulusCoeffs, a, this);
         return y;
     }
     div(a, b) {
-        const dega = degree(a);
-        const degb = degree(b);
+        const dega = (0, polynomials_1.degree)(a);
+        const degb = (0, polynomials_1.degree)(b);
         if (dega === 0 && degb === 0) {
             return [this.Fp.div(a[0], b[0])];
         }
@@ -164,7 +165,7 @@ class ExtensionField {
             base = this.inv(base);
             exponent = -exponent;
         }
-        return squareAndMultiply(base, exponent, this);
+        return (0, polynomials_1.squareAndMultiply)(base, exponent, this);
     }
 }
 exports.ExtensionField = ExtensionField;
@@ -197,8 +198,8 @@ class ExtensionFieldOverFq {
         const degb = degree2(b);
         if (dega === degb) {
             for (let i = 0; i < dega + 1; i++) {
-                const degai = degree(a[i]);
-                const degbi = degree(b[i]);
+                const degai = (0, polynomials_1.degree)(a[i]);
+                const degbi = (0, polynomials_1.degree)(b[i]);
                 if (degai === degbi) {
                     for (let j = 0; j < degai + 1; j++) {
                         if (a[i][j] !== b[i][j])
@@ -313,7 +314,7 @@ class ExtensionFieldOverFq {
             return [this.Fq.div(a[0], b[0])];
         }
         else if (degb === 0) {
-            const dd = degree(b[0]);
+            const dd = (0, polynomials_1.degree)(b[0]);
             if (dd === 0 && b[0][0] === 0n)
                 throw new Error("Division by zero");
             const c = new Array(dega + 1);
@@ -377,8 +378,8 @@ class ExtensionFieldOverFqOverFq {
                 const degbi = degree2(b[i]);
                 if (degai === degbi) {
                     for (let j = 0; j < degai + 1; j++) {
-                        const degaij = degree(a[i][j]);
-                        const degbij = degree(b[i][j]);
+                        const degaij = (0, polynomials_1.degree)(a[i][j]);
+                        const degbij = (0, polynomials_1.degree)(b[i][j]);
                         if (degaij === degbij) {
                             for (let k = 0; k < degaij + 1; k++) {
                                 if (a[i][j][k] !== b[i][j][k])
@@ -476,7 +477,9 @@ class ExtensionFieldOverFqOverFq {
             return this.mod(c);
         }
         else {
-            const c = new Array(dega + degb + 1).fill([[0n]]);
+            const c = new Array(dega + degb + 1).fill([
+                [0n],
+            ]);
             for (let i = 0; i < dega + 1; i++) {
                 for (let j = 0; j < degb + 1; j++) {
                     c[i + j] = this.Fq.add(c[i + j], this.Fq.mul(a[i], b[j]));
@@ -499,7 +502,7 @@ class ExtensionFieldOverFqOverFq {
         }
         else if (degb === 0) {
             const dd = degree2(b[0]);
-            const ddd = degree(b[0][0]);
+            const ddd = (0, polynomials_1.degree)(b[0][0]);
             if (dd === 0 && ddd === 0 && b[0][0][0] === 0n)
                 throw new Error("Division by zero");
             const c = new Array(dega + 1);
@@ -530,20 +533,12 @@ class ExtensionFieldOverFqOverFq {
     }
 }
 exports.ExtensionFieldOverFqOverFq = ExtensionFieldOverFqOverFq;
-function degree(a) {
-    let d = a.length - 1;
-    while (d && a[d] === 0n) {
-        d--;
-    }
-    return d;
-}
-exports.degree = degree;
 function degree2(a) {
     let d = a.length - 1;
-    let dd = degree(a[d]);
+    let dd = (0, polynomials_1.degree)(a[d]);
     while (d && dd === 0 && a[d][0] === 0n) {
         d--;
-        dd = degree(a[d]);
+        dd = (0, polynomials_1.degree)(a[d]);
     }
     return d;
 }
@@ -555,21 +550,6 @@ function degree3(a) {
         dd = degree2(a[d]);
     }
     return d;
-}
-function euclidean_division(a, b, Fp) {
-    const dega = degree(a);
-    const degb = degree(b);
-    let q = new Array(dega - degb + 1).fill(0n);
-    let r = a.slice();
-    for (let i = dega - degb; i >= 0; i--) {
-        q[i] = Fp.div(r[i + degb], b[degb]);
-        for (let j = 0; j < degb + 1; j++) {
-            r[i + j] = Fp.sub(r[i + j], Fp.mul(q[i], b[j]));
-        }
-    }
-    const degr = degree(r);
-    r = r.slice(0, degr + 1);
-    return [q, r];
 }
 function euclidean_division2(a, b, Fq) {
     const dega = degree2(a);
@@ -600,33 +580,6 @@ function euclidean_division3(a, b, Fq) {
     const degr = degree3(r);
     r = r.slice(0, degr + 1);
     return [q, r];
-}
-function egcd(a, b, Fq) {
-    let [old_r, r] = [a, b];
-    let [old_s, s] = [Fq.one, Fq.zero];
-    let [old_t, t] = [Fq.zero, Fq.one];
-    while (Fq.neq(r, Fq.zero)) {
-        const [q] = euclidean_division(old_r, r, Fq.Fp);
-        let old_rr = old_r.slice();
-        let old_ss = old_s.slice();
-        let old_tt = old_t.slice();
-        old_rr = Fq.sub(old_rr, Fq.mul(q, r));
-        old_ss = Fq.sub(old_ss, Fq.mul(q, s));
-        old_tt = Fq.sub(old_tt, Fq.mul(q, t));
-        [old_r, r] = [r, old_rr];
-        [old_s, s] = [s, old_ss];
-        [old_t, t] = [t, old_tt];
-    }
-    for (let i = 0; i < degree(old_s) + 1; i++) {
-        old_s[i] = Fq.Fp.div(old_s[i], old_r[0]);
-    }
-    for (let i = 0; i < degree(old_t) + 1; i++) {
-        old_t[i] = Fq.Fp.div(old_t[i], old_r[0]);
-    }
-    for (let i = 0; i < degree(old_r) + 1; i++) {
-        old_r[i] = Fq.Fp.div(old_r[i], old_r[0]);
-    }
-    return [old_s, old_t, old_r];
 }
 function egcd2(a, b, Fq) {
     let [old_r, r] = [a, b];
@@ -681,17 +634,6 @@ function egcd3(a, b, Fq) {
         old_r[i] = Fq.Fq.div(old_r[i], old_r[0]);
     }
     return [old_s, old_t, old_r];
-}
-function squareAndMultiply(base, exponent, Fq) {
-    let result = base.slice();
-    let binary = exponent.toString(2);
-    for (let i = 1; i < binary.length; i++) {
-        result = Fq.mul(result, result);
-        if (binary[i] === "1") {
-            result = Fq.mul(result, base);
-        }
-    }
-    return result;
 }
 function squareAndMultiply2(base, exponent, Fq) {
     let result = base.slice();

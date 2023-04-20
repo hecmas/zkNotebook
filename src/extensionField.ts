@@ -1,5 +1,6 @@
 import { PrimeField } from "./primeField";
 import { FiniteField } from "./finiteField";
+import { degree, egcd, euclidean_division, squareAndMultiply } from "./polynomials";
 
 // TODO: I have implemented depth-3 field extensions, but it would be good to do it more generic
 
@@ -509,7 +510,9 @@ export class ExtensionFieldOverFqOverFq implements FiniteField<bigint[][][]> {
             }
             return this.mod(c);
         } else {
-            const c = new Array<Array<Array<bigint>>>(dega + degb + 1).fill([[0n]]);
+            const c = new Array<Array<Array<bigint>>>(dega + degb + 1).fill([
+                [0n],
+            ]);
             for (let i = 0; i < dega + 1; i++) {
                 for (let j = 0; j < degb + 1; j++) {
                     c[i + j] = this.Fq.add(c[i + j], this.Fq.mul(a[i], b[j]));
@@ -535,7 +538,8 @@ export class ExtensionFieldOverFqOverFq implements FiniteField<bigint[][][]> {
         } else if (degb === 0) {
             const dd = degree2(b[0]);
             const ddd = degree(b[0][0]);
-            if (dd === 0 && ddd === 0 && b[0][0][0] === 0n) throw new Error("Division by zero");
+            if (dd === 0 && ddd === 0 && b[0][0][0] === 0n)
+                throw new Error("Division by zero");
             const c = new Array<Array<Array<bigint>>>(dega + 1);
             for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fq.div(a[i], b[0]);
@@ -567,14 +571,6 @@ export class ExtensionFieldOverFqOverFq implements FiniteField<bigint[][][]> {
     }
 }
 
-export function degree(a: bigint[]): number {
-    let d = a.length - 1;
-    while (d && a[d] === 0n) {
-        d--;
-    }
-    return d;
-}
-
 function degree2(a: bigint[][]): number {
     let d = a.length - 1;
     let dd = degree(a[d]);
@@ -593,27 +589,6 @@ function degree3(a: bigint[][][]): number {
         dd = degree2(a[d]);
     }
     return d;
-}
-
-function euclidean_division(
-    a: bigint[],
-    b: bigint[],
-    Fp: PrimeField
-): bigint[][] {
-    const dega = degree(a);
-    const degb = degree(b);
-    let q = new Array<bigint>(dega - degb + 1).fill(0n);
-    let r = a.slice();
-    for (let i = dega - degb; i >= 0; i--) {
-        q[i] = Fp.div(r[i + degb], b[degb]);
-        for (let j = 0; j < degb + 1; j++) {
-            r[i + j] = Fp.sub(r[i + j], Fp.mul(q[i], b[j]));
-        }
-    }
-
-    const degr = degree(r);
-    r = r.slice(0, degr + 1);
-    return [q, r];
 }
 
 function euclidean_division2(
@@ -658,39 +633,11 @@ function euclidean_division3(
     return [q, r];
 }
 
-function egcd(a: bigint[], b: bigint[], Fq: ExtensionField): bigint[][] {
-    let [old_r, r] = [a, b];
-    let [old_s, s] = [Fq.one, Fq.zero];
-    let [old_t, t] = [Fq.zero, Fq.one];
-
-    while (Fq.neq(r, Fq.zero)) {
-        const [q] = euclidean_division(old_r, r, Fq.Fp);
-        let old_rr = old_r.slice();
-        let old_ss = old_s.slice();
-        let old_tt = old_t.slice();
-        old_rr = Fq.sub(old_rr, Fq.mul(q, r));
-        old_ss = Fq.sub(old_ss, Fq.mul(q, s));
-        old_tt = Fq.sub(old_tt, Fq.mul(q, t));
-
-        [old_r, r] = [r, old_rr];
-        [old_s, s] = [s, old_ss];
-        [old_t, t] = [t, old_tt];
-    }
-
-    for (let i = 0; i < degree(old_s) + 1; i++) {
-        old_s[i] = Fq.Fp.div(old_s[i], old_r[0]);
-    }
-    for (let i = 0; i < degree(old_t) + 1; i++) {
-        old_t[i] = Fq.Fp.div(old_t[i], old_r[0]);
-    }
-    for (let i = 0; i < degree(old_r) + 1; i++) {
-        old_r[i] = Fq.Fp.div(old_r[i], old_r[0]);
-    }
-
-    return [old_s, old_t, old_r];
-}
-
-function egcd2(a: bigint[][], b: bigint[][], Fq: ExtensionFieldOverFq): bigint[][][] {
+function egcd2(
+    a: bigint[][],
+    b: bigint[][],
+    Fq: ExtensionFieldOverFq
+): bigint[][][] {
     let [old_r, r] = [a, b];
     let [old_s, s] = [Fq.one, Fq.zero];
     let [old_t, t] = [Fq.zero, Fq.one];
@@ -722,7 +669,11 @@ function egcd2(a: bigint[][], b: bigint[][], Fq: ExtensionFieldOverFq): bigint[]
     return [old_s, old_t, old_r];
 }
 
-function egcd3(a: bigint[][][], b: bigint[][][], Fq: ExtensionFieldOverFqOverFq): bigint[][][][] {
+function egcd3(
+    a: bigint[][][],
+    b: bigint[][][],
+    Fq: ExtensionFieldOverFqOverFq
+): bigint[][][][] {
     let [old_r, r] = [a, b];
     let [old_s, s] = [Fq.one, Fq.zero];
     let [old_t, t] = [Fq.zero, Fq.one];
@@ -752,23 +703,6 @@ function egcd3(a: bigint[][][], b: bigint[][][], Fq: ExtensionFieldOverFqOverFq)
     }
 
     return [old_s, old_t, old_r];
-}
-
-
-function squareAndMultiply(
-    base: bigint[],
-    exponent: bigint,
-    Fq: ExtensionField
-): bigint[] {
-    let result = base.slice();
-    let binary = exponent.toString(2);
-    for (let i = 1; i < binary.length; i++) {
-        result = Fq.mul(result, result);
-        if (binary[i] === "1") {
-            result = Fq.mul(result, base);
-        }
-    }
-    return result;
 }
 
 function squareAndMultiply2(

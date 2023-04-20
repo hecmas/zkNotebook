@@ -7,7 +7,12 @@ import {
 import { PrimeField } from "./primeField";
 import { E, tE, G1, G2 } from "./BN254/parameters";
 import { r } from "./BN254/constants";
-import { degree } from "./extensionField";
+import { RingOfPolynomials, degree, euclidean_division } from "./polynomials";
+import {
+    optimal_ate_bn254,
+    verify_pairing_identity,
+} from "./BN254/optimal_ate_pairing";
+import { assert } from "chai";
 
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
 
@@ -38,130 +43,166 @@ function srs_mock(
     srs2.push(G2);
     srs2.push(tE.escalarMul(G2, s));
 
-    return [srs1,srs2];
+    return [srs1, srs2];
 }
 
-// Assume polynomial p(x) = a0 + a1·x + a2·x^2 + ... + ad·x^d 
+// Assume polynomial p(x) = a0 + a1·x + a2·x^2 + ... + ad·x^d
 // is given as an array of its coefficients [a0, a1, a2, ..., ad]
 /**
  * @input pol: a polynomial [a0, a1, a2, ..., ad] of appropriate degree.
  * @returns It outputs the E point `[f(s)]_1 = a0[1]_1 + a1[s]_1 + ... + ad[s^d]_1`.
  */
-function commit_polynomial(E: EllipticCurveOverFp, srs: [PointOverFp[], PointOverFq[]], pol: bigint[]) {
-    const [srs1,] = srs;
+function commit_polynomial(
+    E: EllipticCurveOverFp,
+    srs: [PointOverFp[], PointOverFq[]],
+    pol: bigint[]
+) {
+    const [srs1] = srs;
     const d = degree(pol);
     if (d >= srs1.length) {
         throw new Error("The polynomial degree is too large");
     }
-    
+
     let com: PointOverFp = E.zero;
-    for (let i = 0; i < d; i++) {
+    for (let i = 0; i <= d; i++) {
         com = E.add(com, E.escalarMul(srs1[i], pol[i]));
     }
 
     return com;
 }
 
-// Let's implement the open protocol for KZG, which is a (non-)interactive protocol
-
 class Prover {
     readonly E: EllipticCurveOverFp;
-    readonly G: PointOverFp;
+    readonly srs: [PointOverFp[], PointOverFq[]];
+    readonly pol: bigint[];
     readonly Fr: PrimeField;
-    readonly w: bigint;
-    readonly H: PointOverFp;
-    messages: any[];
+    readonly RPr: RingOfPolynomials;
+    // messages: any[];
     verifier_challenges: bigint[];
+    readonly verbose: boolean;
 
     // Constructor
-    constructor(E: EllipticCurveOverFp, G: PointOverFp, r: bigint) {
+    constructor(
+        E: EllipticCurveOverFp,
+        r: bigint,
+        srs: [PointOverFp[], PointOverFq[]],
+        pol: bigint[],
+        verbose: boolean = false
+    ) {
         const Fr = new PrimeField(r); // the scalar field of E
-        const w: bigint = bigintRnd(r);
-        const H = E.escalarMul(G, w);
+        const RPr = new RingOfPolynomials(r); // the ring of polynomials over Fr
 
         this.E = E;
-        this.G = G; // G is the generator of a subgroup of points of E(Fp) of order r, e.g., E(Fp)[r]
-        this.Fr = Fr; // r is a prime number
-        this.w = w; // "I know w s.t. h = wG" is the Schnorr statement
-        this.H = H;
-        this.messages = [];
+        this.Fr = Fr;
+        this.RPr = RPr;
+        this.srs = srs;
+        this.pol = pol;
+        // this.messages = [];
         this.verifier_challenges = [];
+        this.verbose = verbose;
     }
 
-    // Computes and sends A = xG, where x is a random number
-    compute_and_send_first_message(V: Verifier) {
-        const x = bigintRnd(this.Fr.p);
-        const A: PointOverFp = this.E.escalarMul(this.G, x);
-        this.messages.push(x);
-        // this.messages.push(A); // Prover does not need to store a
-        V.receive_message(A);
+    commit_and_send_initial_polynomial(V: Verifier) {
+        const polcom = commit_polynomial(this.E, this.srs, this.pol);
+        // this.messages.push(polcom);
+        V.receive_message(polcom);
     }
 
     // Computes and sends z = we + x (mod r)
-    compute_and_send_second_message(V: Verifier) {
-        const Fr = this.Fr;
+    compute_and_send_evaluation_and_proof(V: Verifier) {
+        // pol(z) = y
+        const z = this.verifier_challenges[0];
+        const y = this.RPr.eval(this.pol, z);
 
-        const x = this.messages[0];
-        const e = this.verifier_challenges[0];
-        const z = Fr.add(Fr.mul(this.w, e), x);
-        V.receive_message(z);
+        // q = (pol - y)/(x - z)
+        const numerator = this.RPr.sub(this.pol, [y]);
+        const denominator = this.RPr.sub([this.Fr.zero, this.Fr.one], [z]);
+        const q = this.RPr.div(numerator, denominator);
+
+        // proof pi = [q(s)]_1
+        const pi = commit_polynomial(this.E, this.srs, q);
+
+        V.receive_message(y);
+        V.receive_message(pi);
     }
 
     receive_challenge(c: bigint) {
         this.verifier_challenges.push(c);
-        // console.log(`Received challenge ${c}`);
+        if (this.verbose) {
+            console.log(`P received challenge ${c}`);
+        }
     }
 }
 
 class Verifier {
     readonly E: EllipticCurveOverFp;
-    readonly G: PointOverFp;
+    readonly tE: EllipticCurveOverFq;
+    readonly srs: [PointOverFp, PointOverFq, PointOverFq];
     readonly Fr: PrimeField;
-    readonly H: PointOverFp;
     prover_messages: any[];
     challenges: bigint[];
+    readonly verbose: boolean;
 
     // Constructor
     constructor(
         E: EllipticCurveOverFp,
-        G: PointOverFp,
+        tE: EllipticCurveOverFq,
         r: bigint,
-        H: PointOverFp
+        srs: [PointOverFp[], PointOverFq[]],
+        verbose: boolean = false
     ) {
-        const Fr = new PrimeField(r);
+        const Fr = new PrimeField(r); // the scalar field of E
+
+        const [srs1, srs2] = srs;
+        const srs_pruned: [PointOverFp, PointOverFq, PointOverFq] = [
+            srs1[0],
+            srs2[0],
+            srs2[1],
+        ];
+
         this.E = E;
-        this.G = G; // G is a generator of the group of points of E
+        this.tE = tE;
         this.Fr = Fr;
-        this.H = H; // Received from the prover before the protocol starts
+        this.srs = srs_pruned; // The verifier only needs [1]_1, [1]_2, [s]_2
         this.prover_messages = [];
         this.challenges = [];
+        this.verbose = verbose;
     }
 
     receive_message(m: any) {
         this.prover_messages.push(m);
-        // console.log(`Received message ${m}`);
+        if (this.verbose) {
+            console.log(`V received message ${m}`);
+        }
     }
 
     compute_and_send_challenge(P: Prover) {
-        const e = bigintRnd(this.Fr.p);
-        this.challenges.push(e);
-        P.receive_challenge(e);
+        const z = bigintRnd(this.Fr.p);
+        this.challenges.push(z);
+        P.receive_challenge(z);
     }
 
-    // Checks that A + eH = zG over E
+    // Checks that e(pi,[s]_2-[z]_2) = e(polcom - [y]_1,[1]_2) <==> e(-pi,[s]_2-[z]_2) · e([pol(s)]_1 - [y]_1,[1]_2) = 1
     verify(): boolean {
         const E = this.E;
-        const G = this.G;
-        const H = this.H;
-        const Fr = this.Fr;
 
-        const e: bigint = this.challenges[0];
-        const A: PointOverFp = this.prover_messages[0];
-        const z: bigint = this.prover_messages[1];
+        const z: bigint = this.challenges[0];
+        const polcom: PointOverFp = this.prover_messages[0];
+        const y: bigint = this.prover_messages[1];
+        const pi: PointOverFp = this.prover_messages[2];
+        const npi = E.neg(pi);
 
-        const LHS = E.add(E.escalarMul(H, e), A);
-        const RHS = E.escalarMul(G, z);
-        const result = Fr.eq(LHS.x, RHS.x) && Fr.eq(LHS.y, RHS.y);
+        const zcom = tE.escalarMul(this.srs[1], z);
+        const ycom = E.escalarMul(this.srs[0], y);
+
+        const input12 = tE.sub(this.srs[2], zcom);
+        const input21 = E.sub(polcom, ycom);
+
+        const result = verify_pairing_identity(
+            [npi, input21],
+            [input12, this.srs[1]]
+        );
+
         if (result) {
             console.log("Verification succeeded");
             return true;
@@ -172,32 +213,12 @@ class Verifier {
 }
 
 // Main
-const P = new Prover(E, G1, r);
-const V = new Verifier(E, G1, r, P.H);
+const srs = srs_mock(E, tE, G1, G2, r, 4n);
+const pol = [10n, 2n, -3n, -4n];
+const P = new Prover(E, r, srs, pol);
+const V = new Verifier(E, tE, r, srs);
 
-P.compute_and_send_first_message(V);
+P.commit_and_send_initial_polynomial(V);
 V.compute_and_send_challenge(P);
-P.compute_and_send_second_message(V);
+P.compute_and_send_evaluation_and_proof(V);
 V.verify();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const srs = srs_mock(E, tE, G1, G2, r, 10n);
-const f = [1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n];
-console.log(commit_polynomial(E, srs, f));

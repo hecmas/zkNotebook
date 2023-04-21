@@ -34,7 +34,6 @@ class Prover {
         // this.messages.push(polcom);
         V.receive_message(polcom);
     }
-    // Computes and sends z = we + x (mod r)
     compute_and_send_evaluation_and_proof(V) {
         // pol(z) = y
         const z = this.verifier_challenges[0];

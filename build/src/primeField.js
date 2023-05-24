@@ -54,7 +54,8 @@ class PrimeField {
         // edge cases
         if (base === 0n) {
             if (exponent === 0n) {
-                throw new Error("0^0 is undefined");
+                // throw new Error("0^0 is undefined");
+                return 1n; // It is confortable to define 0^0 to be 1
             }
             return 0n;
         }

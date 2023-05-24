@@ -3,7 +3,7 @@ import {
     EllipticCurveOverFq,
     EllipticCurveOverFqOverFq,
 } from "../ellipticCurve";
-import { ExtensionField, ExtensionFieldOverFq } from "../extensionField";
+import { ExtensionField, ExtensionFieldOverFq, ExtensionFieldOverFqOverFq } from "../extensionField";
 import { PrimeField } from "../primeField";
 import { p } from "./constants";
 
@@ -24,6 +24,13 @@ export const Fp12 = new ExtensionFieldOverFq(Fp2, [
     [0n],
     [1n, 0n],
 ]);
+
+// Fp12 defined as a tower of field extensions
+export const Fp6 = new ExtensionFieldOverFq(Fp2, [Fp2.neg(xi), [0n], [0n], [1n]]);
+export const Fp12a = new ExtensionFieldOverFqOverFq(Fp6, [[[0n], [-1n,0n], [0n]], [[0n], [0n], [0n]], [[1n], [0n], [0n]]]);
+
+export const Fp4 = new ExtensionFieldOverFq(Fp2, [Fp2.neg(xi), [0n], [1n]]);
+export const Fp12b = new ExtensionFieldOverFqOverFq(Fp4, [[[0n], [-1n,0n]], [[0n], [0n]], [[0n], [0n]],[[1n], [0n]]]);
 
 // Curve E: y² = x³ + 3 over Fp
 export const E = new EllipticCurveOverFp(0n, 3n, Fp);

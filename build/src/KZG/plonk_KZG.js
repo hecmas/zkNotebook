@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const primeField_1 = require("../primeField");
 const parameters_1 = require("../BN254/parameters");
 const constants_1 = require("../BN254/constants");
-const polynomials_1 = require("../polynomials");
+const univariatePolynomialRing_1 = require("../univariatePolynomialRing");
 const optimal_ate_pairing_1 = require("../BN254/optimal_ate_pairing");
 const common_1 = require("./common");
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
@@ -21,7 +21,7 @@ class Prover {
     // Constructor
     constructor(E, r, srs, pols1, pols2, verbose = false) {
         const Fr = new primeField_1.PrimeField(r); // the scalar field of E
-        const RPr = new polynomials_1.RingOfPolynomials(r); // the ring of polynomials over Fr
+        const RPr = new univariatePolynomialRing_1.UnivariatePolynomialRing(r); // the ring of polynomials over Fr
         this.E = E;
         this.Fr = Fr;
         this.RPr = RPr;
@@ -32,7 +32,7 @@ class Prover {
         this.verifier_challenges = [];
         this.verbose = verbose;
     }
-    commit_and_send_initial_polynomials(V) {
+    compute_and_send_commitments_to_initial_polynomials(V) {
         let polcoms1 = [];
         for (const pol of this.pols1) {
             const polcom = (0, common_1.commit_polynomial)(this.E, this.srs, pol);
@@ -209,7 +209,7 @@ const pol4 = [99n];
 const pol5 = [-3n, 67n, 1024n, 0n, -999n, 0n];
 const P = new Prover(parameters_1.E, constants_1.r, srs, [pol1, pol2, pol3], [pol4, pol5]);
 const V = new Verifier(parameters_1.E, parameters_1.tE, constants_1.r, srs);
-P.commit_and_send_initial_polynomials(V);
+P.compute_and_send_commitments_to_initial_polynomials(V);
 V.compute_and_send_two_challenges(P);
 P.compute_and_send_evaluations(V);
 V.compute_and_send_two_challenges(P);

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.commit_polynomial = exports.srs_mock = void 0;
-const polynomials_1 = require("../polynomials");
+const univariatePolynomialRing_1 = require("../univariatePolynomialRing");
 const primeField_1 = require("../primeField");
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
 // INSECURE: the srs should be obtained through a MPC protocol
@@ -32,7 +32,7 @@ exports.srs_mock = srs_mock;
  */
 function commit_polynomial(E, srs, pol) {
     const [srs1] = srs;
-    const d = (0, polynomials_1.degree)(pol);
+    const d = (0, univariatePolynomialRing_1.degree)(pol);
     if (d >= srs1.length) {
         throw new Error("The polynomial degree is too large");
     }

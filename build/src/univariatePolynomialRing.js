@@ -1,47 +1,44 @@
-import { ExtensionField } from "./extensionField";
-import { PrimeField } from "./primeField";
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.squareAndMultiply = exports.egcd = exports.euclidean_division = exports.degree = exports.UnivariatePolynomialRing = void 0;
+const primeField_1 = require("./primeField");
 /*
     A polynomial p(x) = a0 + a1·x + a2·x^2 + ... + an·x^n  is represented
     by the array [a0, a1, a2, ..., an].
  */
-export class RingOfPolynomials {
-    readonly Fp: PrimeField;
-
+class UnivariatePolynomialRing {
+    Fp;
     // Constructor
-    constructor(p: bigint) {
+    constructor(p) {
         // The prime field over which the extension is defined
-        this.Fp = new PrimeField(p);
+        this.Fp = new primeField_1.PrimeField(p);
     }
-
     // Public Accessors
-    get zero(): bigint[] {
+    get zero() {
         return [0n];
     }
-
-    get one(): bigint[] {
+    get one() {
         return [1n];
     }
-
     // Comparators
-    eq(a: bigint[], b: bigint[]): boolean {
+    eq(a, b) {
         const dega = degree(a);
         const degb = degree(b);
         if (dega === degb) {
             for (let i = 0; i < dega + 1; i++) {
-                if (a[i] !== b[i]) return false;
+                if (a[i] !== b[i])
+                    return false;
             }
             return true;
-        } else {
+        }
+        else {
             return false;
         }
     }
-
-    neq(a: bigint[], b: bigint[]): boolean {
+    neq(a, b) {
         return !this.eq(a, b);
     }
-
-    eval(pol: bigint[], x: bigint) {
+    eval(pol, x) {
         const d = degree(pol);
         let y = 0n;
         for (let i = d; i >= 0; i--) {
@@ -49,65 +46,62 @@ export class RingOfPolynomials {
         }
         return y;
     }
-
     // Basic Arithmetic
-    add(a: bigint[], b: bigint[]): bigint[] {
+    add(a, b) {
         const dega = degree(a);
         const degb = degree(b);
         let maxdeg = Math.max(dega, degb);
-        const c = new Array<bigint>(maxdeg + 1);
+        const c = new Array(maxdeg + 1);
         for (let i = 0; i < maxdeg + 1; i++) {
             let ai = i < dega + 1 ? a[i] : 0n;
             let bi = i < degb + 1 ? b[i] : 0n;
             c[i] = this.Fp.mod(ai + bi);
         }
-
         return c;
     }
-
-    neg(a: bigint[]): bigint[] {
-        const c = new Array<bigint>(degree(a) + 1);
+    neg(a) {
+        const c = new Array(degree(a) + 1);
         for (let i = 0; i < degree(a) + 1; i++) {
             c[i] = this.Fp.neg(a[i]);
         }
         return c;
     }
-
-    sub(a: bigint[], b: bigint[]): bigint[] {
+    sub(a, b) {
         const dega = degree(a);
         const degb = degree(b);
         const maxdeg = Math.max(dega, degb);
-        const c = new Array<bigint>(maxdeg + 1);
+        const c = new Array(maxdeg + 1);
         for (let i = 0; i < maxdeg + 1; i++) {
             let ai = i < dega + 1 ? a[i] : 0n;
             let bi = i < degb + 1 ? b[i] : 0n;
             c[i] = this.Fp.mod(ai - bi);
         }
-
         return c;
     }
-
-    mul(a: bigint[], b: bigint[]): bigint[] {
+    mul(a, b) {
         const dega = degree(a);
         const degb = degree(b);
         if (dega === 0) {
             if (degb === 0) {
                 return [this.Fp.mul(a[0], b[0])];
-            } else {
-                const c = new Array<bigint>(degb + 1);
+            }
+            else {
+                const c = new Array(degb + 1);
                 for (let i = 0; i < degb + 1; i++) {
                     c[i] = this.Fp.mul(a[0], b[i]);
                 }
                 return c;
             }
-        } else if (degb === 0) {
-            const c = new Array<bigint>(dega + 1);
+        }
+        else if (degb === 0) {
+            const c = new Array(dega + 1);
             for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.mul(a[i], b[0]);
             }
             return c;
-        } else {
-            const c = new Array<bigint>(dega + degb + 1).fill(0n);
+        }
+        else {
+            const c = new Array(dega + degb + 1).fill(0n);
             for (let i = 0; i < dega + 1; i++) {
                 for (let j = 0; j < degb + 1; j++) {
                     c[i + j] = this.Fp.add(c[i + j], this.Fp.mul(a[i], b[j]));
@@ -116,7 +110,6 @@ export class RingOfPolynomials {
             return c;
         }
     }
-
     // TODO: Not all elements have an inverse in a polynomial ring
     // inv(a: bigint[]): bigint[] {
     //     if (this.eq(a, this.zero))
@@ -124,70 +117,45 @@ export class RingOfPolynomials {
     //     const [, y] = egcd(this.modulusCoeffs, a, this);
     //     return y;
     // }
-
-    div(a: bigint[], b: bigint[]): bigint[] {
+    div(a, b) {
         const dega = degree(a);
         const degb = degree(b);
-
         if (dega === 0 && degb === 0) {
             return [this.Fp.div(a[0], b[0])];
-        } else if (degb === 0) {
-            if (b[0] === 0n) throw new Error("Division by zero");
-            const c = new Array<bigint>(dega + 1);
+        }
+        else if (degb === 0) {
+            if (b[0] === 0n)
+                throw new Error("Division by zero");
+            const c = new Array(dega + 1);
             for (let i = 0; i < dega + 1; i++) {
                 c[i] = this.Fp.div(a[i], b[0]);
             }
             return c;
-        } else {
+        }
+        else {
             if (dega < degb)
                 throw new Error("Degree of divisor must be less than dividend");
-
             const [q, r] = euclidean_division(a, b, this.Fp);
             if (degree(r) !== 0 || this.Fp.neq(r[0], 0n)) {
                 throw new Error("Division is not exact");
             }
-
             return q;
         }
     }
-
-    // exp(base: bigint[], exponent: bigint): bigint[] {
-    //     base = this.mod(base);
-
-    //     // edge cases
-    //     if (this.eq(base, this.zero)) {
-    //         if (exponent === 0n) {
-    //             throw new Error("0^0 is undefined");
-    //         }
-    //         return this.zero;
-    //     }
-
-    //     // negative exponent
-    //     if (exponent < 0n) {
-    //         base = this.inv(base);
-    //         exponent = -exponent;
-    //     }
-
-    //     return squareAndMultiply(base, exponent, this);
-    // }
 }
-
-export function degree(a: bigint[]): number {
+exports.UnivariatePolynomialRing = UnivariatePolynomialRing;
+function degree(a) {
     let d = a.length - 1;
     while (d && a[d] === 0n) {
         d--;
     }
     return d;
 }
-
-export function euclidean_division(
-    a: bigint[],
-    b: bigint[],
-    Fp: PrimeField
-): bigint[][] {
+exports.degree = degree;
+function euclidean_division(a, b, Fp) {
     const dega = degree(a);
     const degb = degree(b);
-    let q = new Array<bigint>(dega - degb + 1).fill(0n);
+    let q = new Array(dega - degb + 1).fill(0n);
     let r = a.slice();
     for (let i = dega - degb; i >= 0; i--) {
         q[i] = Fp.div(r[i + degb], b[degb]);
@@ -195,17 +163,15 @@ export function euclidean_division(
             r[i + j] = Fp.sub(r[i + j], Fp.mul(q[i], b[j]));
         }
     }
-
     const degr = degree(r);
     r = r.slice(0, degr + 1);
     return [q, r];
 }
-
-export function egcd(a: bigint[], b: bigint[], Fq: ExtensionField): bigint[][] {
+exports.euclidean_division = euclidean_division;
+function egcd(a, b, Fq) {
     let [old_r, r] = [a, b];
     let [old_s, s] = [Fq.one, Fq.zero];
     let [old_t, t] = [Fq.zero, Fq.one];
-
     while (Fq.neq(r, Fq.zero)) {
         const [q] = euclidean_division(old_r, r, Fq.Fp);
         let old_rr = old_r.slice();
@@ -214,12 +180,10 @@ export function egcd(a: bigint[], b: bigint[], Fq: ExtensionField): bigint[][] {
         old_rr = Fq.sub(old_rr, Fq.mul(q, r));
         old_ss = Fq.sub(old_ss, Fq.mul(q, s));
         old_tt = Fq.sub(old_tt, Fq.mul(q, t));
-
         [old_r, r] = [r, old_rr];
         [old_s, s] = [s, old_ss];
         [old_t, t] = [t, old_tt];
     }
-
     for (let i = 0; i < degree(old_s) + 1; i++) {
         old_s[i] = Fq.Fp.div(old_s[i], old_r[0]);
     }
@@ -229,15 +193,10 @@ export function egcd(a: bigint[], b: bigint[], Fq: ExtensionField): bigint[][] {
     for (let i = 0; i < degree(old_r) + 1; i++) {
         old_r[i] = Fq.Fp.div(old_r[i], old_r[0]);
     }
-
     return [old_s, old_t, old_r];
 }
-
-export function squareAndMultiply(
-    base: bigint[],
-    exponent: bigint,
-    Fq: ExtensionField
-): bigint[] {
+exports.egcd = egcd;
+function squareAndMultiply(base, exponent, Fq) {
     let result = base.slice();
     let binary = exponent.toString(2);
     for (let i = 1; i < binary.length; i++) {
@@ -248,3 +207,5 @@ export function squareAndMultiply(
     }
     return result;
 }
+exports.squareAndMultiply = squareAndMultiply;
+//# sourceMappingURL=univariatePolynomialRing.js.map

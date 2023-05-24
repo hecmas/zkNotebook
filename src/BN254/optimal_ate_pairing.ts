@@ -67,7 +67,7 @@ function conjugateFp12(a: bigint[][]): bigint[][] {
     return [a[0], Fp2.neg(a[1]), a[2], Fp2.neg(a[3]), a[4], Fp2.neg(a[5])];
 }
 
-function Frobenius_operator1(f: bigint[][], Fq: ExtensionField): bigint[][] {
+export function Frobenius_operator1(f: bigint[][], Fq: ExtensionField): bigint[][] {
     const conjugates: bigint[][] = [];
     for (let i = 0; i < f.length; i++) {
         conjugates.push(conjugateFp2(f[i]));
@@ -83,7 +83,7 @@ function Frobenius_operator1(f: bigint[][], Fq: ExtensionField): bigint[][] {
     ];
 }
 
-function Frobenius_operator2(f: bigint[][], Fq: ExtensionField): bigint[][] {
+export function Frobenius_operator2(f: bigint[][], Fq: ExtensionField): bigint[][] {
     return [
         f[0],
         Fq.mul(constants.gamma21, f[1]),
@@ -94,7 +94,7 @@ function Frobenius_operator2(f: bigint[][], Fq: ExtensionField): bigint[][] {
     ];
 }
 
-function Frobenius_operator3(f: bigint[][], Fq: ExtensionField): bigint[][] {
+export function Frobenius_operator3(f: bigint[][], Fq: ExtensionField): bigint[][] {
     const conjugates: bigint[][] = [];
     for (let i = 0; i < f.length; i++) {
         conjugates.push(conjugateFp2(f[i]));

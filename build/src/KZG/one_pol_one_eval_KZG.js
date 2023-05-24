@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const primeField_1 = require("../primeField");
 const parameters_1 = require("../BN254/parameters");
 const constants_1 = require("../BN254/constants");
-const polynomials_1 = require("../polynomials");
+const univariatePolynomialRing_1 = require("../univariatePolynomialRing");
 const optimal_ate_pairing_1 = require("../BN254/optimal_ate_pairing");
 const common_1 = require("./common");
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
@@ -19,7 +19,7 @@ class Prover {
     // Constructor
     constructor(E, r, srs, pol, verbose = false) {
         const Fr = new primeField_1.PrimeField(r); // the scalar field of E
-        const RPr = new polynomials_1.RingOfPolynomials(r); // the ring of polynomials over Fr
+        const RPr = new univariatePolynomialRing_1.UnivariatePolynomialRing(r); // the ring of polynomials over Fr
         this.E = E;
         this.Fr = Fr;
         this.RPr = RPr;

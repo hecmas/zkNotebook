@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.E12 = exports.tG2 = exports.G2 = exports.tE = exports.b2 = exports.a2 = exports.G1 = exports.E = exports.Fp12 = exports.Fp2 = exports.Fp = exports.xi = exports.beta = void 0;
+exports.E12 = exports.tG2 = exports.G2 = exports.tE = exports.b2 = exports.a2 = exports.G1 = exports.E = exports.Fp12b = exports.Fp4 = exports.Fp12a = exports.Fp6 = exports.Fp12 = exports.Fp2 = exports.Fp = exports.xi = exports.beta = void 0;
 const ellipticCurve_1 = require("../ellipticCurve");
 const extensionField_1 = require("../extensionField");
 const primeField_1 = require("../primeField");
@@ -21,6 +21,11 @@ exports.Fp12 = new extensionField_1.ExtensionFieldOverFq(exports.Fp2, [
     [0n],
     [1n, 0n],
 ]);
+// Fp12 defined as a tower of field extensions
+exports.Fp6 = new extensionField_1.ExtensionFieldOverFq(exports.Fp2, [exports.Fp2.neg(exports.xi), [0n], [0n], [1n]]);
+exports.Fp12a = new extensionField_1.ExtensionFieldOverFqOverFq(exports.Fp6, [[[0n], [-1n, 0n], [0n]], [[0n], [0n], [0n]], [[1n], [0n], [0n]]]);
+exports.Fp4 = new extensionField_1.ExtensionFieldOverFq(exports.Fp2, [exports.Fp2.neg(exports.xi), [0n], [1n]]);
+exports.Fp12b = new extensionField_1.ExtensionFieldOverFqOverFq(exports.Fp4, [[[0n], [-1n, 0n]], [[0n], [0n]], [[0n], [0n]], [[1n], [0n]]]);
 // Curve E: y² = x³ + 3 over Fp
 exports.E = new ellipticCurve_1.EllipticCurveOverFp(0n, 3n, exports.Fp);
 // Generator of E(Fp)[r] = E(Fp)

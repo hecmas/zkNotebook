@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.twist = exports.verify_pairing_identity = exports.optimal_ate_bn254 = void 0;
+exports.twist = exports.verify_pairing_identity = exports.optimal_ate_bn254 = exports.Frobenius_operator3 = exports.Frobenius_operator2 = exports.Frobenius_operator1 = void 0;
 const chai_1 = require("chai");
 const common_1 = require("./common");
 const constants = require("./constants");
@@ -67,6 +67,7 @@ function Frobenius_operator1(f, Fq) {
         Fq.mul(constants.gamma15, conjugates[5]),
     ];
 }
+exports.Frobenius_operator1 = Frobenius_operator1;
 function Frobenius_operator2(f, Fq) {
     return [
         f[0],
@@ -77,6 +78,7 @@ function Frobenius_operator2(f, Fq) {
         Fq.mul(constants.gamma25, f[5]),
     ];
 }
+exports.Frobenius_operator2 = Frobenius_operator2;
 function Frobenius_operator3(f, Fq) {
     const conjugates = [];
     for (let i = 0; i < f.length; i++) {
@@ -91,6 +93,7 @@ function Frobenius_operator3(f, Fq) {
         Fq.mul(constants.gamma35, conjugates[5]),
     ];
 }
+exports.Frobenius_operator3 = Frobenius_operator3;
 function final_expontiation(f, Fq) {
     // a] easy part
     // first, compute f^(p^6-1)=conjugate(f) · f^-1

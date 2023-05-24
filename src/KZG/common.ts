@@ -4,7 +4,7 @@ import {
     PointOverFp,
     PointOverFq,
 } from "../ellipticCurve";
-import { degree } from "../polynomials";
+import { degree } from "../univariatePolynomialRing";
 import { PrimeField } from "../primeField";
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
 

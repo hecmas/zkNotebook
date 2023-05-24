@@ -1,8 +1,11 @@
 import { PrimeField } from "./primeField";
 import { FiniteField } from "./finiteField";
-import { degree, egcd, euclidean_division, squareAndMultiply } from "./polynomials";
-
-// TODO: I have implemented depth-3 field extensions, but it would be good to do it more generic
+import {
+    degree,
+    egcd,
+    euclidean_division,
+    squareAndMultiply,
+} from "./univariatePolynomialRing";
 
 /*
     A polynomial p(x) = a0 + a1·x + a2·x^2 + ... + an·x^n  is represented

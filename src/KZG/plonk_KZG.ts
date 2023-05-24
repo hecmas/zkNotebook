@@ -7,7 +7,7 @@ import {
 import { PrimeField } from "../primeField";
 import { E, tE, G1, G2 } from "../BN254/parameters";
 import { r } from "../BN254/constants";
-import { RingOfPolynomials } from "../polynomials";
+import { UnivariatePolynomialRing } from "../univariatePolynomialRing";
 import { verify_pairing_identity } from "../BN254/optimal_ate_pairing";
 import { commit_polynomial, srs_mock } from "./common";
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
@@ -20,7 +20,7 @@ class Prover {
     readonly pols1: bigint[][];
     readonly pols2: bigint[][];
     readonly Fr: PrimeField;
-    readonly RPr: RingOfPolynomials;
+    readonly RPr: UnivariatePolynomialRing;
     messages: [bigint[], bigint[]];
     verifier_challenges: bigint[];
     readonly verbose: boolean;
@@ -35,7 +35,7 @@ class Prover {
         verbose: boolean = false
     ) {
         const Fr = new PrimeField(r); // the scalar field of E
-        const RPr = new RingOfPolynomials(r); // the ring of polynomials over Fr
+        const RPr = new UnivariatePolynomialRing(r); // the ring of polynomials over Fr
 
         this.E = E;
         this.Fr = Fr;

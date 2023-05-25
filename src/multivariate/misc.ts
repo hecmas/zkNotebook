@@ -33,11 +33,38 @@ export function compute_eq_polynomial(p: bigint, nvars: number): ArrayMap {
 /**
  * 
  * @param p 
+ * @param f a multivariate polynomial over `Fp[X1,...,Xn]` where the degree in each variable is at most `d`
+ * @param g a multivariate polynomial over `Fp[X1,...,Xn]` where the degree in each variable is at most `d`
+ * @returns The polynomial over `Fp[X0,X1,...,Xn]` that is equal to `(1 - X0)·f(X) + X0·g(X)`
+ */
+export function merge(p: bigint, f: ArrayMap, g: ArrayMap): ArrayMap {
+    const nvarsf = count_number_of_variables(f);
+    const nvarsg = count_number_of_variables(g);
+    const nvars = nvarsf >= nvarsg ? nvarsf : nvarsg;
+
+    const MPRp = new MultivariatePolynomialRing(p);
+
+    // 1 - X0, X0
+    const zeroarray = new Array<number>(nvars+1).fill(0);
+    const onearray = new Array<number>(nvars+1).fill(0);
+    onearray[0] = 1;
+    const firstpol = new ArrayMap([[zeroarray, 1n],[onearray, -1n]]);
+    const secondpol = new ArrayMap([[onearray, 1n]]);
+
+    // (1 - X0)·f(X) + X0·g(X)
+    const factor1 = MPRp.mul(firstpol, MPRp.increase_nvars(f, 1));
+    const factor2 = MPRp.mul(secondpol, MPRp.increase_nvars(g, 1));
+    return MPRp.add(factor1, factor2);
+}
+
+/**
+ * 
+ * @param p 
  * @param f a function with domain `{0,1}^n`. One can also view it as an `ArrayMap` between `{0,1}^n` and `Fp`
  * @returns The unique multilinear polynomial `ftilde` satisfying `ftilde(x) = f(x)` for all `x` in `{0,1}^n`
  */
 // TODO: Improve it
-function multivariate_Lagrange_interpolation(p: bigint, f: ArrayMap) {
+function multivariate_Lagrange_interpolation(p: bigint, f: ArrayMap): ArrayMap {
     const nvars = count_number_of_variables(f);
     if (f.size !== 1 << nvars) {
         throw new Error(`The function f must be defined on the whole domain {0,1}^${nvars}`);
@@ -63,15 +90,22 @@ function multivariate_Lagrange_interpolation(p: bigint, f: ArrayMap) {
     return ftilde;
 }
 
-// // Tests
-// let p = 97n;
-// let MPRp = new MultivariatePolynomialRing(p);
-// const g = new ArrayMap();
-// g.set([3, 0], 2n);
-// g.set([1, 0], 1n);
-// g.set([0, 1], 1n);
+// Tests
+let p = 97n;
+let MPRp = new MultivariatePolynomialRing(p);
+let f = new ArrayMap();
+f.set([3], 2n);
+f.set([1], 1n);
+f.set([0, 1], 1n);
+let g = new ArrayMap();
+g.set([0, 0, 3], 66n);
+g.set([1], 20n);
+g.set([0, 1], 13n);
+let merge_pol = merge(p, f, g);
+console.log(MPRp.toString(MPRp.eval_symbolic(merge_pol, [0n])));
+console.log(MPRp.toString(MPRp.eval_symbolic(merge_pol, [1n])));
 // let h = compute_eq_polynomial(p, 2);
-// // console.log(MPRp.toString(h));
+// console.log(MPRp.toString(h));
 
 // p = 11n;
 // MPRp = new MultivariatePolynomialRing(p);

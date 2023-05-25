@@ -166,6 +166,16 @@ class MultivariatePolynomialRing {
     neq(a, b) {
         return !this.eq(a, b);
     }
+    // Functionality
+    increase_nvars(a, n) {
+        const result = new ArrayMap();
+        for (const [k, v] of a) {
+            const pad = new Array(n).fill(0);
+            const kk = pad.concat(k);
+            result.set(kk, v);
+        }
+        return result;
+    }
     eval(pol, x) {
         const nvars = count_number_of_variables(pol);
         if (x.length !== nvars) {

@@ -84,10 +84,14 @@ export class MultivariatePolynomialRing {
         return new ArrayMap([[[], 1n]]);
     }
 
-    // Pretty formatting
+    // Pretty functions
     toString(a: ArrayMap, onevar: boolean = false): string {
+        if (this.eq(a, this.zero)) {
+            return "0";
+        }
+
         const terms: string[] = [];
-        for (const [k, v] of a.entries()) {
+        for (const [k, v] of a) {
             if (this.Fp.eq(v, 0n)) {
                 continue;
             } else if (this.Fp.eq(v, 1n)) {
@@ -116,33 +120,57 @@ export class MultivariatePolynomialRing {
                 if (onevar) {
                     variables.push(`X`);
                 } else {
-                    variables.push(`X${i+1}`);
+                    variables.push(`X${i + 1}`);
                 }
             } else {
                 if (onevar) {
                     variables.push(`X^${key[i]}`);
                 } else {
-                    variables.push(`X${i+1}^${key[i]}`);
+                    variables.push(`X${i + 1}^${key[i]}`);
                 }
             }
         }
         return variables.join("·");
     }
 
+    clean(a: ArrayMap): ArrayMap {
+        const result = new ArrayMap();
+
+        // Remove all zero coefficients
+        for (const [k, v] of a) {
+            if (this.Fp.neq(v, 0n)) {
+                result.set(k, v);
+            }
+        }
+
+        // Remove all trailing zeros
+        for (const k of result.keys()) {
+            let l = k.length;
+            while (l > 0 && k[l - 1] === 0) {
+                k.pop();
+                l--;
+            }
+        }
+
+        if (result.size === 0) {
+            return this.zero;
+        }
+        return result;
+    }
+
     // Comparators
     eq(a: ArrayMap, b: ArrayMap): boolean {
-        const dega = degree(a);
-        const degb = degree(b);
-        if (dega === degb) {
-            for (const [k, v] of a) {
-                if (!b.has(k) || this.Fp.neq(v, b.get(k)!)) {
-                    return false;
-                }
-            }
-            return true;
-        } else {
+        if (a.size !== b.size) {
             return false;
         }
+
+        for (const [k, v] of a) {
+            if (!b.has(k) || this.Fp.neq(v, b.get(k)!)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     neq(a: ArrayMap, b: ArrayMap): boolean {
@@ -150,7 +178,9 @@ export class MultivariatePolynomialRing {
     }
 
     eval(pol: ArrayMap, x: bigint[]): bigint {
-        if (x.length !== count_number_of_variables(pol)) {
+        const nvars = count_number_of_variables(pol);
+
+        if (x.length !== nvars) {
             throw new Error(
                 "The number of variables in the polynomial and the number of values to evaluate at are different."
             );
@@ -158,9 +188,11 @@ export class MultivariatePolynomialRing {
 
         let result = 0n;
         for (const [k, v] of pol) {
+            const pad = new Array<number>(nvars - k.length).fill(0);
+            const kk = pad.concat(k);
             let prod = v;
-            for (let i = 0; i < k.length; i++) {
-                prod = this.Fp.mul(prod, this.Fp.exp(x[i], BigInt(k[i])));
+            for (let i = 0; i < nvars; i++) {
+                prod = this.Fp.mul(prod, this.Fp.exp(x[i], BigInt(kk[i])));
             }
             result = this.Fp.add(result, prod);
         }
@@ -168,7 +200,9 @@ export class MultivariatePolynomialRing {
     }
 
     eval_symbolic(pol: ArrayMap, x: bigint[], start: number = 0): ArrayMap {
-        if (x.length + start > count_number_of_variables(pol)) {
+        const nvars = count_number_of_variables(pol);
+
+        if (x.length + start > nvars) {
             throw new Error(
                 "The number of variables in the polynomial is less than the number of values to evaluate at."
             );
@@ -179,34 +213,36 @@ export class MultivariatePolynomialRing {
 
         let result = new ArrayMap([[[], 0n]]);
         for (const [k, v] of pol) {
+            const pad = new Array<number>(nvars - k.length).fill(0);
+            const kk = k.concat(pad);
             let prod = v;
             for (let i = 0; i < x.length; i++) {
                 prod = this.Fp.mul(
                     prod,
-                    this.Fp.exp(x[i], BigInt(k[start + i]))
+                    this.Fp.exp(x[i], BigInt(kk[start + i]))
                 );
             }
-            const copyk = k.slice();
+            const copyk = kk.slice();
             copyk.splice(start, x.length);
             const remaining_pol = new ArrayMap([[copyk, prod]]);
             result = this.add(result, remaining_pol);
         }
-        return result;
+        return this.clean(result);
     }
 
     // Basic Arithmetic
     add(a: ArrayMap, b: ArrayMap): ArrayMap {
         const nvara = count_number_of_variables(a);
         const nvarb = count_number_of_variables(b);
-        const nvar = nvara >= nvarb ? nvara : nvarb;
+        const nvars = nvara >= nvarb ? nvara : nvarb;
         const c = new ArrayMap();
         for (const [k, v] of a) {
-            const padding = new Array<number>(nvar - k.length).fill(0);
+            const padding = new Array<number>(nvars - k.length).fill(0);
             const exponents = k.concat(padding);
             c.set(exponents, v);
         }
         for (const [k, v] of b) {
-            const padding = new Array<number>(nvar - k.length).fill(0);
+            const padding = new Array<number>(nvars - k.length).fill(0);
             const exponents = k.concat(padding);
             if (c.has(exponents)) {
                 c.set(exponents, this.Fp.add(c.get(exponents)!, v));
@@ -215,7 +251,7 @@ export class MultivariatePolynomialRing {
             }
         }
 
-        return c;
+        return this.clean(c);
     }
 
     neg(a: ArrayMap): ArrayMap {
@@ -223,21 +259,21 @@ export class MultivariatePolynomialRing {
         for (const [k, v] of a) {
             c.set(k, this.Fp.neg(v));
         }
-        return c;
+        return this.clean(c);
     }
 
     sub(a: ArrayMap, b: ArrayMap): ArrayMap {
         const nvara = count_number_of_variables(a);
         const nvarb = count_number_of_variables(b);
-        const nvar = nvara >= nvarb ? nvara : nvarb;
+        const nvars = nvara >= nvarb ? nvara : nvarb;
         const c = new ArrayMap();
         for (const [k, v] of a) {
-            const padding = new Array<number>(nvar - k.length).fill(0);
+            const padding = new Array<number>(nvars - k.length).fill(0);
             const exponents = k.concat(padding);
             c.set(exponents, v);
         }
         for (const [k, v] of b) {
-            const padding = new Array<number>(nvar - k.length).fill(0);
+            const padding = new Array<number>(nvars - k.length).fill(0);
             const exponents = k.concat(padding);
             if (c.has(exponents)) {
                 c.set(exponents, this.Fp.sub(c.get(exponents)!, v));
@@ -246,13 +282,21 @@ export class MultivariatePolynomialRing {
             }
         }
 
-        return c;
+        return this.clean(c);
+    }
+
+    scalar_mul(a: bigint, b: ArrayMap): ArrayMap {
+        const c = new ArrayMap();
+        for (const [k, v] of b) {
+            c.set(k, this.Fp.mul(a, v));
+        }
+        return this.clean(c);
     }
 
     mul(a: ArrayMap, b: ArrayMap): ArrayMap {
         const nvara = count_number_of_variables(a);
         const nvarb = count_number_of_variables(b);
-        const nvar = nvara >= nvarb ? nvara : nvarb;
+        const nvars = nvara >= nvarb ? nvara : nvarb;
         const dega = degree(a);
         const degb = degree(b);
         if (dega === 0) {
@@ -265,19 +309,19 @@ export class MultivariatePolynomialRing {
                 for (const [k, v] of b) {
                     c.set(k, this.Fp.mul(a.get([])!, v));
                 }
-                return c;
+                return this.clean(c);
             }
         } else if (degb === 0) {
             const c = new ArrayMap();
             for (const [k, v] of a) {
                 c.set(k, this.Fp.mul(v, b.get([])!));
             }
-            return c;
+            return this.clean(c);
         } else {
             const c = new ArrayMap();
             for (const [k1, v1] of a) {
                 for (const [k2, v2] of b) {
-                    const exponent = new Array<number>(nvar).fill(0);
+                    const exponent = new Array<number>(nvars).fill(0);
                     for (let i = 0; i < k1.length; i++) {
                         exponent[i] += k1[i];
                     }
@@ -294,7 +338,7 @@ export class MultivariatePolynomialRing {
                     }
                 }
             }
-            return c;
+            return this.clean(c);
         }
     }
 
@@ -312,44 +356,45 @@ export class MultivariatePolynomialRing {
     // }
 }
 
-const p = 67n;
-const MPR = new MultivariatePolynomialRing(p);
-const pol1 = new ArrayMap();
-pol1.set([1, 2], 1n);
-pol1.set([2, 1, 4], 15n);
-pol1.set([13], 3n);
-pol1.set([2, 1, 4, 10], 7n);
+// const p = 67n;
+// const MPR = new MultivariatePolynomialRing(p);
+// const pol1 = new ArrayMap();
+// pol1.set([1, 2, 0], 1n);
+// pol1.set([2, 1, 4], 15n);
+// pol1.set([13], 3n);
+// pol1.set([2, 1, 4, 10], 7n);
+// console.log(MPR.mul(pol1, MPR.one));
 
-const pol2 = new ArrayMap();
-pol2.set([2, 1, 4, 10, 4], 7n);
-pol2.set([13, 4], 3n);
-pol2.set([1, 2], 3n);
+// const pol2 = new ArrayMap();
+// pol2.set([2, 1, 4, 10, 4], 7n);
+// pol2.set([13, 4], 3n);
+// pol2.set([1, 2], 3n);
 
-// console.log(MPR.add(pol1, pol2));
+// console.log(MPR.mul(pol1, pol2));
 // console.log(MPR.sub(pol1, pol2));
 // console.log(MPR.neg(pol1));
 // console.log(degree(pol1));
 // console.log(degree(pol2));
 
-const pol3 = new ArrayMap();
-pol3.set([1, 2, 0], 1n);
-pol3.set([2, 4, 1], 3n);
-pol3.set([0, 4, 1], 3n);
+// const pol3 = new ArrayMap();
+// pol3.set([1, 2, 0], 1n);
+// pol3.set([2, 4, 1], 3n);
+// pol3.set([0, 4, 1], 3n);
 // pol3.set([13], 3n);
 // pol3.set([2, 1, 4, 10], 7n);
 // console.log(MPR.eval(pol3, [3n,1n,2n]));
 // console.log(MPR.eval_symbolic(pol3, [2n], 2));
 // console.log(degree_j(pol3,1));
 
-const pol4 = new ArrayMap();
+// const pol4 = new ArrayMap();
 // pol4.set([1, 2], 1n);
 // pol4.set([2, 1, 4], 15n);
 // pol4.set([3], 2n);
 // pol4.set([13], 3n);
 // pol4.set([2], 2n);
-pol4.set([0], 2n);
+// pol4.set([0], 2n);
 // console.log(MPR.mul(pol3, pol4));
-// console.log(degree(pol4));
+// console.log(degree_j(pol4,2));
 
 function eq(a: number[], b: number[]): boolean {
     if (a.length !== b.length) return false;
@@ -361,7 +406,7 @@ function eq(a: number[], b: number[]): boolean {
 }
 
 export function count_number_of_variables(p: ArrayMap): number {
-    let result = 0;
+    let result = 1;
     for (const [k] of p) {
         k.length > result ? (result = k.length) : result;
     }
@@ -370,13 +415,14 @@ export function count_number_of_variables(p: ArrayMap): number {
 }
 
 export function degree(a: ArrayMap): number {
-    if (count_number_of_variables(a) === 0) {
-        return 0;
-    }
-
+    const nvars = count_number_of_variables(a);
     let d = 0;
-    for (const [k] of a) {
-        const sum = k.reduce((a, b) => a + b);
+    for (const [k,v] of a) {
+        if (v === 0n) continue; 
+
+        const pad = new Array<number>(nvars - k.length).fill(0);
+        const kk = k.concat(pad);
+        const sum = kk.reduce((a, b) => a + b);
         sum > d ? (d = sum) : d;
     }
 
@@ -386,9 +432,9 @@ export function degree(a: ArrayMap): number {
 export function degree_j(a: ArrayMap, j: number): number {
     const nvars = count_number_of_variables(a);
     if (j < 0) {
-        throw new Error(`j must be positive`);
+        throw new Error(`The input index ${j} cannot be negative`);
     } else if (j > nvars) {
-        throw new Error(`j must be less than or equal to ${nvars}`);
+        throw new Error(`The input index ${j} cannot be greater than ${nvars}`);
     }
 
     if (nvars === 0) {
@@ -396,8 +442,12 @@ export function degree_j(a: ArrayMap, j: number): number {
     }
 
     let d = 0;
-    for (const [k] of a) {
-        k[j - 1] > d ? (d = k[j - 1]) : d;
+    for (const [k,v] of a) {
+        if (v === 0n) continue;
+
+        const pad = new Array<number>(nvars - k.length).fill(0);
+        const kk = k.concat(pad);
+        kk[j - 1] > d ? (d = kk[j - 1]) : d;
     }
 
     return d;

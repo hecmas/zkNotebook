@@ -1,6 +1,6 @@
 "use strict";
 const N = Number.MAX_SAFE_INTEGER; // 2^53 - 1 For computations.
-const M = Number.MAX_VALUE; // 2^1024 - 1 For representation.
+// const M = Number.MAX_VALUE; // 2^1024 - 1 For representation.
 const base = 2 ** 32; // b is the base of which numbers are represented.
 const KARAT_CUTOFF = 1 << 4; // TODO: Find a precise value.
 function karatsuba_mul(a, b) {
@@ -127,6 +127,28 @@ function gcd(a, b) {
     }
     return a;
 }
+function egcd(a, b) {
+    if (a < b) {
+        let result = egcd(b, a);
+        return [result[1], result[0], result[2]];
+    }
+    if (b === 0) {
+        return [1, 0, a];
+    }
+    let [previous_r, r] = [a, b];
+    let [previous_s, s] = [1, 0];
+    let [previous_t, t] = [0, 1];
+    while (r) {
+        let q = Math.floor(previous_r / r);
+        [previous_r, r] = [r, previous_r - q * r];
+        [previous_s, s] = [s, previous_s - q * s];
+        [previous_t, t] = [t, previous_t - q * t];
+    }
+    return [previous_s, previous_t, previous_r];
+}
+function mod(a, b) {
+    return a >= 0 ? a % b : ((a % b) + b) % b;
+}
 function array_sub(a, b) {
     const alen = a.length;
     const blen = b.length;
@@ -173,6 +195,21 @@ function test_gcd() {
     console.log(`gcd(${0}, ${b}) = ${gcd(0, b)}`);
     console.log(`gcd(${0}, ${0}) = ${gcd(0, 0)}`);
 }
+function test_montgomery_reduction() {
+    const R = 2 ** 16;
+    const M = 123456789;
+    let Minv = egcd(R, M)[1];
+    Minv = mod(R - Minv, R);
+    const T = 987654321;
+    const expectedResult = T % M;
+    const result = montgomery_form(montgomery_reduction(T, R, M, Minv), R, M);
+    if (expectedResult !== result) {
+        throw new Error(`Error: expected ${expectedResult}, got ${result}`);
+    }
+    else {
+        console.log(`${T} mod ${M} = ${result}`);
+    }
+}
 function test_karatsuba() {
     const a = [123456789, 987654321, 123456789, 987654321];
     const b = [123456789, 987654321, 123456789, 987654321];
@@ -205,5 +242,6 @@ function test_MPMR() {
     const Minv = 1;
 }
 // test_karatsuba();
-test_gcd();
+// test_gcd();
+test_montgomery_reduction();
 //# sourceMappingURL=arithmetic.js.map

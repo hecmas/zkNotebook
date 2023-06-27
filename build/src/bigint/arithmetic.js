@@ -1,227 +1,163 @@
 "use strict";
-// https://cp-algorithms.com/algebra/montgomery_multiplication.html
-const N = Number.MAX_SAFE_INTEGER; // 2^53 - 1 For computations.
+Object.defineProperty(exports, "__esModule", { value: true });
+const auxiliary_1 = require("./auxiliary");
+// const N = Number.MAX_SAFE_INTEGER; // 2^53 - 1 For computations.
 // const M = Number.MAX_VALUE; // 2^1024 - 1 For representation.
-const base = 2 ** 32; // b is the base of which numbers are represented.
-const KARAT_CUTOFF = 1 << 4; // TODO: Find a precise value.
+// const B = 1n << 32n; // b is the base of which numbers are represented.
+const KARAT_CUTOFF = 1n << 4n; // TODO: Find a precise value.
+/**
+ * It computes the product of two positive integers using Karatsuba's algorithm.
+ * @param a The first multiplicand.
+ * @param b The second multiplicand.
+ * @returns The product of a and b.
+ */
 function karatsuba_mul(a, b) {
+    if (a < 0n) {
+        throw new Error(`Negative input: ${a}`);
+    }
+    else if (b < 0n) {
+        throw new Error(`Negative input: ${b}`);
+    }
     if (a < KARAT_CUTOFF || b < KARAT_CUTOFF) {
         return a * b;
     }
-    const m = Math.max(log2(a), log2(b));
-    const m2 = m >> 1;
-    const [ah, al] = split_at(a, m2);
-    const [bh, bl] = split_at(b, m2);
+    const m = BigInt(Math.max((0, auxiliary_1.log2)(a), (0, auxiliary_1.log2)(b)));
+    const m2 = m >> 1n;
+    const [ah, al] = (0, auxiliary_1.split_at)(a, m2);
+    const [bh, bl] = (0, auxiliary_1.split_at)(b, m2);
     const d0 = karatsuba_mul(al, bl);
     const d1 = karatsuba_mul(al + ah, bl + bh);
     const d2 = karatsuba_mul(ah, bh);
-    const result = d0 + (d1 - d0 - d2) * 2 ** m2 + d2 * 2 ** (2 * m2);
+    const result = d0 + (d1 - d0 - d2) * 2n ** m2 + d2 * 2n ** (2n * m2);
     return result;
 }
+/**
+ * It computes the square of a positive integer using Karatsuba's algorithm.
+ * @param a The multiplicand.
+ * @returns The square of a.
+ */
 function karatsuba_square(a) {
     if (a < KARAT_CUTOFF) {
-        return a ** 2;
+        return a ** 2n;
     }
-    const m = log2(a);
-    const m2 = m >> 1;
-    const [ah, al] = split_at(a, m2);
+    const m = BigInt((0, auxiliary_1.log2)(a));
+    const m2 = m >> 1n;
+    const [ah, al] = (0, auxiliary_1.split_at)(a, m2);
     const d0 = karatsuba_square(al);
     const d1 = karatsuba_square(al + ah);
     const d2 = karatsuba_square(ah);
-    const result = d0 + (d1 - d0 - d2) * 2 ** m2 + d2 * 2 ** (2 * m2);
+    const result = d0 + (d1 - d0 - d2) * 2n ** m2 + d2 * 2n ** (2n * m2);
     return result;
 }
-// Add assumptions to the inputs.
-// TODO: Decide how to choose R.
 /**
  * @param T The input value. It should be an integer in the range [0, M·R - 1].
  * @param R The helper modulus. It should be an integer coprime to M.
  * @param M The modulus to reduce the input to. It should be an integer coprime to R.
- * @returns Integer S in the range [0, M - 1] such that S = x·R⁻¹ (mod M).
+ * @returns Integer S in the range [0, M - 1] such that S = T·R (mod M).
  */
 function montgomery_form(T, R, M) {
-    if (T < 0
-    //|| T > N
-    ) {
-        throw new Error(`Overflow: T must be in the range [0, ${N}]`);
+    const max = BigInt(Number.MAX_VALUE);
+    if (T < 0n || T > max) {
+        throw new Error(`Overflow: T must be in the range [0, ${max}]`);
     }
-    if (gcd(R, M) !== 1) {
-        throw new Error(`R and M must be coprime`);
-    }
-    return (T * R) % M;
+    // if (gcd(R, M) !== 1) {
+    //     throw new Error(`R and M must be coprime`);
+    // }
+    return (T * R) % M; // TODO: Optimize.
 }
 /**
  * @param T The input value. It should be an integer in the range [0, M·R - 1].
  * @param R The helper modulus. It should be an integer coprime to M.
  * @param M The modulus to reduce the input to. It should be an integer coprime to R.
- * @param Minv Pseudo-inverse of M modulo R.
- * @returns Integer S in the range [0, M - 1] such that S = x·R⁻¹ (mod M).
+ * @param Minv Inverse of M modulo R.
+ * @returns Integer S in the range [0, M - 1] such that S = T·R⁻¹ (mod M).
  */
-function montgomery_reduction(T, R, M, Minv) {
+function REDC(T, R, M, Minv) {
     // R and M must be coprime.
-    if (gcd(R, M) !== 1) {
+    if ((0, auxiliary_1.gcd)(R, M) !== 1n) {
         throw new Error(`R = ${R} and M = ${M} must be coprime`);
     }
-    // Minv must be the pseudo-inverse of M modulo R.
-    if ((M * Minv) % R !== 1) {
-        throw new Error(`Minv = ${Minv} must be the pseudo-inverse of M = ${M} modulo R = ${R}`);
+    // Minv must be the inverse of M modulo R.
+    if ((M * Minv) % R !== 1n) {
+        throw new Error(`Minv = ${Minv} must be the inverse of M = ${M} modulo R = ${R}`);
     }
     // T must be in the range [0, M·R - 1].
-    const limit = M * R - 1;
+    const limit = M * R - 1n;
     if (T < 0 || T > limit) {
         throw new Error(`T = ${T} must be in the range [0, ${limit}]`);
     }
     const m = ((T % R) * Minv) % R;
-    const t = (T + m * M) / R;
-    if (t >= M) {
-        return t - M;
+    const t = (T - m * M) / R;
+    if (t < 0n) {
+        return t + M;
     }
     else {
         return t;
     }
 }
 /**
- * @param T The input value. It should be an integer in the range [0, M·R - 1].
- * @param R The helper modulus. It should be an integer coprime to M.
- * @param M The modulus to reduce the input to. It should be an integer coprime to R.
- * @param Minv Pseudo-inverse of M modulo R.
- * @returns Integer S in the range [0, M - 1] such that S = x·R⁻¹ (mod M).
+ * @param T The input value. Integer in the range [0, M·R - 1], represented in t=m+r chunks of B bits.
+ * @param R The helper modulus. Integer assumed to be equal to Bʳ.
+ * @param M The modulus to reduce the input to. It should be an integer coprime to B (and therefore to R). It is represented in m chunks of B bits.
+ * @param Minv Inverse of M modulo B.
+ * @param B The base of the representation.
+ * @returns Integer S in the range [0, M - 1] such that S = T·R⁻¹ (mod M). It is represented in m chunks of B bits.
  */
-function multi_precision_montgomery_reduction(T, R, M, Minv) {
-    const xlen = T.length;
-    const n = M.length;
-    // We don't need to reduce if T is smaller than mod.
-    if ((xlen < n) || (xlen == n && T[n - 1] < M[n - 1])) {
-        return T;
+function mpREDC(T, R, M, Minv, B) {
+    // 1] TODO: Verify the correctness of the inputs.
+    // // R and M must be coprime.
+    // if (gcd(R, M) !== 1) {
+    //     throw new Error(`R = ${R} and M = ${M} must be coprime`);
+    // }
+    // // Minv must be the inverse of M modulo R.
+    // if ((M*Minv) % R !== 1) {
+    //     throw new Error(`Minv = ${Minv} must be the inverse of M = ${M} modulo R = ${R}`);
+    // }
+    // // T must be in the range [0, M·R - 1].
+    // const limit = M * R - 1;
+    // if (T < 0 || T > limit) {
+    //     throw new Error(`T = ${T} must be in the range [0, ${limit}]`);
+    // }
+    const t = T.length;
+    const m = M.length;
+    const r = (0, auxiliary_1.logB)(R, B);
+    if (t > m + r) {
+        throw new Error(`T = ${T} cannot be represented with more than m+r = ${m + r} chunks of B = ${B} bits`);
     }
-    const log2r = log2(R);
-    for (let i = 0; i < log2r; i++) {
-        let c = 0;
-        let m = (T[i] * Minv) % base;
-        for (let j = 0; j < n; j++) {
-            const carry = T[i + j] + m * M[j] + c;
-            T[i + j] = carry % base;
-            c = Math.floor(carry / base);
+    else if (t <= m + r) {
+        T = T.concat(new Array(m + r + 1 - t).fill(0n)); // We add one extra chunk to handle the carry.
+    }
+    // Loop1: At each iteration, make T divisible by Bⁱ⁺¹
+    for (let i = 0; i < r; i++) {
+        let c = 0n;
+        let p = (T[i] * Minv) % BigInt(B);
+        // Loop2a: At each iteration, add to T the low chunk of p·M[j] and the past carry and find the new carry.
+        for (let j = 0; j < m; j++) {
+            const x = T[i + j] - p * M[j] + c;
+            T[i + j] = x % BigInt(B);
+            c = x / BigInt(B);
         }
-        for (let j = n; j < xlen - i; j++) {
-            const carry = T[i + j] + c;
-            T[i + j] = carry % base;
-            c = Math.floor(carry / base);
+        // Loop2b: At each iteration, add to T the past carry and find the new carry.
+        for (let j = m; j < m + r + 1 - i; j++) {
+            const x = T[i + j] + c;
+            T[i + j] = x % BigInt(B);
+            c = x / BigInt(B);
         }
     }
-    let result = new Array(n).fill(0);
-    for (let i = 0; i < n; i++) {
-        result[i] = T[i];
+    let S = new Array(m).fill(0n);
+    for (let i = 0; i < m; i++) {
+        S[i] = T[i + r];
     }
-    if (result[n - 1] >= M[n - 1]) {
-        return array_sub(result, M);
+    if (S[m - 1] >= M[m - 1]) {
+        return (0, auxiliary_1.array_sub)(S, M, B);
     }
     else {
-        return result;
-    }
-}
-// auxiliary functions
-// assumes non-negative inputs
-function gcd(a, b) {
-    if (a < b) {
-        return gcd(b, a);
-    }
-    if (b === 0) {
-        return a;
-    }
-    while (b) {
-        const t = b;
-        b = a % b;
-        a = t;
-    }
-    return a;
-}
-function egcd(a, b) {
-    if (a < b) {
-        let result = egcd(b, a);
-        return [result[1], result[0], result[2]];
-    }
-    if (b === 0) {
-        return [1, 0, a];
-    }
-    let [previous_r, r] = [a, b];
-    let [previous_s, s] = [1, 0];
-    let [previous_t, t] = [0, 1];
-    while (r) {
-        let q = Math.floor(previous_r / r);
-        [previous_r, r] = [r, previous_r - q * r];
-        [previous_s, s] = [s, previous_s - q * s];
-        [previous_t, t] = [t, previous_t - q * t];
-    }
-    return [previous_s, previous_t, previous_r];
-}
-function mod(a, b) {
-    return a >= 0 ? a % b : ((a % b) + b) % b;
-}
-function array_sub(a, b) {
-    const alen = a.length;
-    const blen = b.length;
-    const len = Math.max(alen, blen);
-    const result = new Array(len).fill(0);
-    let borrow = 0;
-    for (let i = 0; i < len; i++) {
-        const ai = i < alen ? a[i] : 0;
-        const bi = i < blen ? b[i] : 0;
-        let diff = ai - borrow;
-        if (i < blen) {
-            diff -= bi;
-        }
-        if (diff < 0) {
-            diff += base;
-            borrow = 1;
-        }
-        else {
-            borrow = 0;
-        }
-        result[i] = diff;
-    }
-    return result;
-}
-function split_at(x, n) {
-    return [x >> n, x & ((1 << n) - 1)];
-}
-function log2(x) {
-    if (x === 0)
-        return 0;
-    let r = 1;
-    while (x > 1) {
-        x = x >> 1;
-        r += 1;
-    }
-    return r;
-}
-function test_gcd() {
-    const a = 123456789;
-    const b = 987654321;
-    const result = gcd(a, b);
-    console.log(`gcd(${a}, ${b}) = ${result}`);
-    console.log(`gcd(${a}, ${0}) = ${gcd(a, 0)}`);
-    console.log(`gcd(${0}, ${b}) = ${gcd(0, b)}`);
-    console.log(`gcd(${0}, ${0}) = ${gcd(0, 0)}`);
-}
-function test_montgomery_reduction() {
-    const R = 2 ** 16;
-    const M = 123456789;
-    let Minv = egcd(R, M)[1];
-    // Minv = mod(R - Minv, R);
-    const T = 987654321;
-    const expectedResult = T % M;
-    const result = montgomery_form(montgomery_reduction(T, R, M, Minv), R, M);
-    if (expectedResult !== result) {
-        throw new Error(`Error: expected ${expectedResult}, got ${result}`);
-    }
-    else {
-        console.log(`${T} mod ${M} = ${result}`);
+        return S;
     }
 }
 function test_karatsuba() {
-    const a = [123456789, 987654321, 123456789, 987654321];
-    const b = [123456789, 987654321, 123456789, 987654321];
+    const a = [123456789n, 987654321n, 123456789n, 987654321n];
+    const b = [123456789n, 987654321n, 123456789n, 987654321n];
     for (let i = 0; i < a.length; i++) {
         const expectedMul = a[i] * b[i];
         const mul = karatsuba_mul(a[i], b[i]);
@@ -229,28 +165,87 @@ function test_karatsuba() {
             throw new Error(`Error: expected ${expectedMul}, got ${mul}`);
         }
         else {
-            console.log(`${a[i]} · ${b[i]} = ${mul}\n`);
+            // console.log(`${a[i]} · ${b[i]} = ${mul}\n`);
+            console.log("Karatsuba Mul test passed");
         }
-        const expectedSquare = a[i] ** 2;
+        const expectedSquare = a[i] ** 2n;
         const square = karatsuba_square(a[i]);
         if (expectedSquare !== square) {
             throw new Error(`Error: expected ${expectedSquare}, got ${square}`);
         }
         else {
-            console.log(`${a[i]}^2 = ${square}\n`);
+            // console.log(`${a[i]}^2 = ${square}\n`);
+            console.log("Karatsuba Sq test passed");
         }
     }
 }
-function test_MPMR() {
-    const T = [
-        456851579, 3106704095, 710596368, 3131116627, 2303124019, 1619357350,
-        2743281300, 2804640968,
-    ];
-    const R = base;
-    const M = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
-    const Minv = 1;
+function test_REDC() {
+    const R = 1n << 16n;
+    const M = 123456789n;
+    let Minv = (0, auxiliary_1.egcd)(R, M)[1];
+    const T = 987654321n;
+    const expectedResult = T % M;
+    const result = montgomery_form(REDC(T, R, M, Minv), R, M);
+    if (expectedResult !== result) {
+        throw new Error(`Error: expected ${expectedResult}, got ${result}`);
+    }
+    else {
+        // console.log(`${T} mod ${M} = ${result}`);
+        console.log("REDC test passed");
+    }
 }
-// test_karatsuba();
-// test_gcd();
-test_montgomery_reduction();
+function test_mpREDC1() {
+    const T = [
+        236287500539791393639949766424153981693n,
+        9987349287020111142892010793940439742n,
+        93593981823846933379545110016457294077n,
+        17213463078146180362830445753644188492n,
+        208922638622608340257376142744302473934n,
+        262536095740453045045411918842097501903n,
+        249711929963109668613287962193510370391n,
+        248391936649258605054234440895903610156n,
+    ];
+    const B = 2n ** 128n;
+    const R = B ** 10n;
+    const M = [
+        288693961375620708181572571472501394033n,
+        284142130773265162324564928372406588740n,
+        16280493972938261907141697622959871081n,
+        275270938456989854962852188188871396425n,
+        145313252718541816580607959579735668507n,
+        143820246249879084291810517122621962309n,
+        276560065624253518817218920121545234872n,
+        125072878806399272090334221739292697786n,
+    ];
+    let Minv = (0, auxiliary_1.egcd)(B, (0, auxiliary_1.bia2scalar)(M, B))[1];
+    const expectedResult = (0, auxiliary_1.bia2scalar)(T, B) % (0, auxiliary_1.bia2scalar)(M, B);
+    const result = montgomery_form((0, auxiliary_1.bia2scalar)(mpREDC(T, R, M, Minv, B), B), R, (0, auxiliary_1.bia2scalar)(M, B));
+    if (expectedResult !== result) {
+        throw new Error(`Error: expected ${expectedResult}, got ${result}`);
+    }
+    else {
+        // console.log(`${T} mod ${M} = ${result}`);
+        console.log("mpREDC1 test passed");
+    }
+}
+function test_mpREDC2() {
+    const T = [1n, 2n];
+    const B = 1n << 128n;
+    const R = B ** 8n;
+    const M = [3n, 4n];
+    let Minv = (0, auxiliary_1.egcd)(B, (0, auxiliary_1.bia2scalar)(M, B))[1];
+    const expectedResult = (0, auxiliary_1.bia2scalar)(T, B) % (0, auxiliary_1.bia2scalar)(M, B);
+    const result = montgomery_form((0, auxiliary_1.bia2scalar)(mpREDC(T, R, M, Minv, B), B), R, (0, auxiliary_1.bia2scalar)(M, B));
+    if (expectedResult !== result) {
+        throw new Error(`Error: expected ${expectedResult}, got ${result}`);
+    }
+    else {
+        // console.log(`${bia2scalar(T,B)} mod ${bia2scalar(M,B)} = ${result}`);
+        console.log("mpREDC2 test passed");
+    }
+}
+test_karatsuba();
+test_REDC();
+test_mpREDC1();
+test_mpREDC2();
 //# sourceMappingURL=arithmetic.js.map

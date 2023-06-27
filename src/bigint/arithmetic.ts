@@ -1,6 +1,8 @@
+// https://cp-algorithms.com/algebra/montgomery_multiplication.html
+
 const N = Number.MAX_SAFE_INTEGER; // 2^53 - 1 For computations.
 // const M = Number.MAX_VALUE; // 2^1024 - 1 For representation.
-const base = 2 ** 32; // b is the base of which numbers are represented.
+const B = 2 ** 32; // b is the base of which numbers are represented.
 
 const KARAT_CUTOFF = 1 << 4; // TODO: Find a precise value.
 
@@ -44,8 +46,16 @@ function karatsuba_square(a: number) : number {
 // Add assumptions to the inputs.
 // TODO: Decide how to choose R.
 
+/**
+ * @param T The input value. It should be an integer in the range [0, M·R - 1].
+ * @param R The helper modulus. It should be an integer coprime to M.
+ * @param M The modulus to reduce the input to. It should be an integer coprime to R.
+ * @returns Integer S in the range [0, M - 1] such that S = T·R (mod M).
+ */
 function montgomery_form(T: number, R: number, M: number): number {
-    if (T < 0 || T > N) {
+    if (T < 0 
+        //|| T > N
+        ) {
         throw new Error(`Overflow: T must be in the range [0, ${N}]`);
     }
 
@@ -53,7 +63,7 @@ function montgomery_form(T: number, R: number, M: number): number {
         throw new Error(`R and M must be coprime`);
     }
 
-    return (T * R) % M;
+    return (T * R) % M; // TODO: Optimize.
 }
 
 /**
@@ -61,16 +71,16 @@ function montgomery_form(T: number, R: number, M: number): number {
  * @param R The helper modulus. It should be an integer coprime to M.
  * @param M The modulus to reduce the input to. It should be an integer coprime to R.
  * @param Minv Pseudo-inverse of M modulo R.
- * @returns Integer S in the range [0, M - 1] such that S = x·R⁻¹ (mod M).
+ * @returns Integer S in the range [0, M - 1] such that S = T·R⁻¹ (mod M).
  */
-function montgomery_reduction(T: number, R: number, M: number, Minv: number): number {
+function REDC(T: number, R: number, M: number, Minv: number): number {
     // R and M must be coprime.
     if (gcd(R, M) !== 1) {
         throw new Error(`R = ${R} and M = ${M} must be coprime`);
     }
 
     // Minv must be the pseudo-inverse of M modulo R.
-    if ((M*Minv) % R !== R-1) {
+    if ((M*Minv) % R !== 1) {
         throw new Error(`Minv = ${Minv} must be the pseudo-inverse of M = ${M} modulo R = ${R}`);
     }
 
@@ -90,45 +100,67 @@ function montgomery_reduction(T: number, R: number, M: number, Minv: number): nu
 }
 
 /**
- * @param T The input value. It should be an integer in the range [0, M·R - 1].
- * @param R The helper modulus. It should be an integer coprime to M.
- * @param M The modulus to reduce the input to. It should be an integer coprime to R.
- * @param Minv Pseudo-inverse of M modulo R.
- * @returns Integer S in the range [0, M - 1] such that S = x·R⁻¹ (mod M).
+ * @param T The input value. Integer in the range [0, M·R - 1], represented in t=m+r chunks of B bits.
+ * @param R The helper modulus. Integer assumed to be equal to Bʳ.
+ * @param M The modulus to reduce the input to. It should be an integer coprime to B (and therefore to R). It is represented in m chunks of B bits.
+ * @param Minv Pseudo-inverse of M modulo B.
+ * @returns Integer S in the range [0, M - 1] such that S = T·R⁻¹ (mod M). It is represented in m chunks of B bits.
  */
-function multi_precision_montgomery_reduction(T: number[], R: number, M: number[], Minv: number): number[] {
-    const xlen = T.length;
-    const n = M.length;
-    // We don't need to reduce if T is smaller than mod.
-    if ((xlen < n) || (xlen == n && T[n - 1] < M[n - 1])) {
-        return T;
+function multi_precision_REDC(T: number[], R: number, M: number[], Minv: number): number[] {
+    // 1] TODO: Verify the correctness of the inputs.
+    // // R and M must be coprime.
+    // if (gcd(R, M) !== 1) {
+    //     throw new Error(`R = ${R} and M = ${M} must be coprime`);
+    // }
+
+    // // Minv must be the pseudo-inverse of M modulo R.
+    // if ((M*Minv) % R !== 1) {
+    //     throw new Error(`Minv = ${Minv} must be the pseudo-inverse of M = ${M} modulo R = ${R}`);
+    // }
+
+    // // T must be in the range [0, M·R - 1].
+    // const limit = M * R - 1;
+    // if (T < 0 || T > limit) {
+    //     throw new Error(`T = ${T} must be in the range [0, ${limit}]`);
+    // }
+
+    const t = T.length;
+    const m = M.length;
+    const r = log2(R);
+    if (t > m + r) {
+        throw new Error(`T = ${T} cannot be represented with more than m+r = ${m + r} chunks of B = ${B} bits`);
+    } else if (t <= m + r) {
+        T = T.concat(new Array<number>(m + r + 1 - t).fill(0)); // We add one extra chunk to handle the carry.
     }
-    
-    const log2r = log2(R);
-    for (let i = 0; i < log2r; i++) {
+
+
+    // Loop: At each iteration, make T divisible by Bⁱ⁺¹
+    for (let i = 0; i < r; i++) {
         let c = 0;
-        let m = (T[i] * Minv) % base;
-        for (let j = 0; j < n; j++) {
-            const carry = T[i + j] + m * M[j] + c;
-            T[i + j] = carry % base;
-            c = Math.floor(carry / base);
+        let p = (T[i] * Minv) % B;
+        // Loop: At each iteration, add to T the low chunk of p·M[j] and the past carry and find the new carry.
+        for (let j = 0; j < m; j++) {
+            const x = T[i + j] + p * M[j] + c;
+            T[i + j] = x % B;
+            c = Math.floor(x / B);
         }
-        for (let j = n; j < xlen - i; j++) {
-            const carry = T[i + j] + c;
-            T[i + j] = carry % base;
-            c = Math.floor(carry / base);
+        // Loop: At each iteration, add to T the past carry and find the new carry.
+        for (let j = m; j < m + r + 1 - i; j++) {
+            const x = T[i + j] + c;
+            T[i + j] = x % B;
+            c = Math.floor(x / B);
         }
     }
 
-    let result = new Array<number>(n).fill(0);
-    for (let i = 0; i < n; i++) {
-        result[i] = T[i];
+    let S = new Array<number>(m).fill(0);
+    for (let i = 0; i < m; i++) {
+        S[i] = T[i+r];
     }
 
-    if (result[n - 1] >= M[n - 1]) {
-        return array_sub(result, M);
+    if (S[m - 1] >= M[m - 1]) {
+        return array_sub(S, M);
     } else {
-        return result;
+        return S;
     }
 }
 
@@ -191,7 +223,7 @@ function array_sub(a: number[], b: number[]): number[] {
             diff -= bi;
         }
         if (diff < 0) {
-            diff += base;
+            diff += B;
             borrow = 1;
         } else {
             borrow = 0;
@@ -230,10 +262,10 @@ function test_montgomery_reduction() {
     const R = 2 ** 16;
     const M = 123456789;
     let Minv = egcd(R, M)[1];
-    Minv = mod(R - Minv, R);
+    // Minv = mod(R - Minv, R);
     const T = 987654321;
     const expectedResult = T % M;
-    const result = montgomery_form(montgomery_reduction(T, R, M, Minv),R,M);
+    const result = montgomery_form(REDC(T, R, M, Minv),R,M);
     
     if (expectedResult !== result) {
         throw new Error(`Error: expected ${expectedResult}, got ${result}`);
@@ -271,7 +303,7 @@ function test_MPMR() {
         456851579, 3106704095, 710596368, 3131116627, 2303124019, 1619357350,
         2743281300, 2804640968,
     ];
-    const R = base;
+    const R = B;
     const M = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
     const Minv = 1;
 

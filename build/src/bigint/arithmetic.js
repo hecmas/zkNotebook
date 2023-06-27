@@ -1,4 +1,5 @@
 "use strict";
+// https://cp-algorithms.com/algebra/montgomery_multiplication.html
 const N = Number.MAX_SAFE_INTEGER; // 2^53 - 1 For computations.
 // const M = Number.MAX_VALUE; // 2^1024 - 1 For representation.
 const base = 2 ** 32; // b is the base of which numbers are represented.
@@ -32,8 +33,16 @@ function karatsuba_square(a) {
 }
 // Add assumptions to the inputs.
 // TODO: Decide how to choose R.
+/**
+ * @param T The input value. It should be an integer in the range [0, M·R - 1].
+ * @param R The helper modulus. It should be an integer coprime to M.
+ * @param M The modulus to reduce the input to. It should be an integer coprime to R.
+ * @returns Integer S in the range [0, M - 1] such that S = x·R⁻¹ (mod M).
+ */
 function montgomery_form(T, R, M) {
-    if (T < 0 || T > N) {
+    if (T < 0
+    //|| T > N
+    ) {
         throw new Error(`Overflow: T must be in the range [0, ${N}]`);
     }
     if (gcd(R, M) !== 1) {
@@ -54,7 +63,7 @@ function montgomery_reduction(T, R, M, Minv) {
         throw new Error(`R = ${R} and M = ${M} must be coprime`);
     }
     // Minv must be the pseudo-inverse of M modulo R.
-    if ((M * Minv) % R !== R - 1) {
+    if ((M * Minv) % R !== 1) {
         throw new Error(`Minv = ${Minv} must be the pseudo-inverse of M = ${M} modulo R = ${R}`);
     }
     // T must be in the range [0, M·R - 1].
@@ -199,7 +208,7 @@ function test_montgomery_reduction() {
     const R = 2 ** 16;
     const M = 123456789;
     let Minv = egcd(R, M)[1];
-    Minv = mod(R - Minv, R);
+    // Minv = mod(R - Minv, R);
     const T = 987654321;
     const expectedResult = T % M;
     const result = montgomery_form(montgomery_reduction(T, R, M, Minv), R, M);

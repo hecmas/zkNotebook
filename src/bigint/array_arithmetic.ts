@@ -11,32 +11,39 @@ const KARAT_CUTOFF = 1n << 4n; // TODO: Find a precise value.
 
 /**
  * It computes the product of two positive integers using Karatsuba's algorithm.
- * @param a The first multiplicand.
- * @param b The second multiplicand.
- * @returns The product of a and b.
+ * @param a The first multiplicand, represented as an array of `al` base-`B` digits.
+ * @param b The second multiplicand, represented as an array of `bl` base-`B` digits.
+ * @param B The base of the representation.
+ * @returns The product of a and b, represented as an array of `al + bl` base-`B` digits.
  */
-function karatsuba_mul(a: bigint, b: bigint) : bigint {
-    if (a < 0n) {
-        throw new Error(`Negative input: ${a}`);
-    } else if (b < 0n) {
-        throw new Error(`Negative input: ${b}`);
+function array_karatsuba_mul(a: bigint[], b: bigint[], B: bigint) : bigint[] {
+    const n = Math.max(a.length, b.length);
+
+    // TODO: This has been arbitrarily chosen. Find a precise value.
+    if (n <= 10) {
+        return array_long_mul(a, b, B);
     }
 
-    if (a < KARAT_CUTOFF || b < KARAT_CUTOFF) {
-        return a * b;
-    }
+    const n2 = n >> 1;
 
-    const m = BigInt(log2(a) > log2(b) ? log2(a) : log2(b));
-    const m2 = m >> 1n;
+    const ah = a.slice(n2);
+    const al = a.slice(0, n2);
+    const bh = b.slice(n2);
+    const bl = b.slice(0, n2);
 
-    const [ah, al] = split_at(a, m2);
-    const [bh, bl] = split_at(b, m2);
+    const d0 = array_karatsuba_mul(al, bl, B);
+    const d1 = array_karatsuba_mul(array_add(al, ah, B), array_add(bl, bh, B), B);
+    const d2 = array_karatsuba_mul(ah, bh, B);
 
-    const d0 = karatsuba_mul(al, bl);
-    const d1 = karatsuba_mul(al + ah, bl + bh);
-    const d2 = karatsuba_mul(ah, bh);
-
-    const result = d0 + (d1 - d0 - d2) * 2n ** m2 + d2 * 2n ** (2n * m2);
+    const result = array_add(
+        array_add(
+            d0,
+            shift_left(array_sub(array_sub(d1, d0, B), d2, B), n2),
+            B
+        ),
+        shift_left(d2, 2 * n2),
+        B
+    );
     return result;
 }
 
@@ -208,31 +215,31 @@ function mpREDC(T: bigint[], R: bigint, M: bigint[], Minv: bigint, B: bigint): b
 // }
 
 
-function test_karatsuba() {
-    const a = [123456789n, 987654321n, 123456789n, 987654321n];
-    const b = [123456789n, 987654321n, 123456789n, 987654321n];
+// function test_karatsuba() {
+//     const a = [123456789n, 987654321n, 123456789n, 987654321n];
+//     const b = [123456789n, 987654321n, 123456789n, 987654321n];
 
-    for (let i = 0; i < a.length; i++) {
-        const expectedMul = a[i] * b[i];
-        const mul = karatsuba_mul(a[i], b[i]);
-        if (expectedMul !== mul) {
-            throw new Error(`Error: expected ${expectedMul}, got ${mul}`);
-        } else {
-            // console.log(`${a[i]} · ${b[i]} = ${mul}\n`);
-            console.log("Karatsuba Mul test passed");
-        }
+//     for (let i = 0; i < a.length; i++) {
+//         const expectedMul = a[i] * b[i];
+//         const mul = karatsuba_mul(a[i], b[i]);
+//         if (expectedMul !== mul) {
+//             throw new Error(`Error: expected ${expectedMul}, got ${mul}`);
+//         } else {
+//             // console.log(`${a[i]} · ${b[i]} = ${mul}\n`);
+//             console.log("Karatsuba Mul test passed");
+//         }
 
-        const expectedSquare = a[i] ** 2n;
-        const square = karatsuba_square(a[i]);
-        if (expectedSquare !== square) {
-            throw new Error(`Error: expected ${expectedSquare}, got ${square}`);
-        } else {
-            // console.log(`${a[i]}^2 = ${square}\n`);
-            console.log("Karatsuba Sq test passed");
-        }
+//         const expectedSquare = a[i] ** 2n;
+//         const square = karatsuba_square(a[i]);
+//         if (expectedSquare !== square) {
+//             throw new Error(`Error: expected ${expectedSquare}, got ${square}`);
+//         } else {
+//             // console.log(`${a[i]}^2 = ${square}\n`);
+//             console.log("Karatsuba Sq test passed");
+//         }
 
-    }
-}
+//     }
+// }
 
 function test_REDC() {
     const R = 1n << 16n;
@@ -304,9 +311,13 @@ function test_mpREDC2() {
 
 }
 
-test_karatsuba();
+// test_karatsuba();
 test_REDC();
 test_mpREDC1();
 test_mpREDC2();
 
-console.log(array_long_mul([1n,9n,6n], [9n,8n,3n], 10n));
+console.log(shift_left([1n,2n], 2));
+console.log(array_add([2n,6n,2n], [8n,3n], 10n));
+console.log(array_add([8n,3n], [2n,6n,2n], 10n));
+console.log(array_sub([1n,2n], [0n,4n], 10n));
+console.log(array_long_mul([2n,6n,2n], [8n,3n], 10n));

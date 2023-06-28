@@ -1,4 +1,5 @@
 "use strict";
+// I assume little-endian representation of numbers in some base B.
 Object.defineProperty(exports, "__esModule", { value: true });
 const auxiliary_1 = require("./auxiliary");
 // const N = Number.MAX_SAFE_INTEGER; // 2^53 - 1 For computations.
@@ -21,7 +22,7 @@ function karatsuba_mul(a, b) {
     if (a < KARAT_CUTOFF || b < KARAT_CUTOFF) {
         return a * b;
     }
-    const m = BigInt(Math.max((0, auxiliary_1.log2)(a), (0, auxiliary_1.log2)(b)));
+    const m = BigInt((0, auxiliary_1.log2)(a) > (0, auxiliary_1.log2)(b) ? (0, auxiliary_1.log2)(a) : (0, auxiliary_1.log2)(b));
     const m2 = m >> 1n;
     const [ah, al] = (0, auxiliary_1.split_at)(a, m2);
     const [bh, bl] = (0, auxiliary_1.split_at)(b, m2);
@@ -155,6 +156,29 @@ function mpREDC(T, R, M, Minv, B) {
         return S;
     }
 }
+/**
+ *
+ * @param Tsize Byte size of B.
+ * @param Esize Byte size of E.
+ * @param Msize Byte size of M.
+ * @param B Base as unsigned integer.
+ * @param E Exponent as unsigned integer.
+ * @param M Modulus as unsigned integer.
+ * @returns
+ */
+// function modExp(Tsize: bigint, Esize: bigint, Msize: bigint, T: bigint[], E: bigint[], M: bigint[]): bigint[] {
+//     const B = 1n << 128n
+//     const Mnumchunks = M.length;
+//     if (Mnumchunks === 1 && M[0] === 0n) {
+//         return [0n];
+//     }
+//     const Tnumchunks = T.length;
+//     const Enumchunks = E.length;
+//     let nbitsE = Esize * 8n;
+//     let result = new Array<bigint>(m).fill(0n);
+//     result[0] = 1n;
+//     return T;
+// }
 function test_karatsuba() {
     const a = [123456789n, 987654321n, 123456789n, 987654321n];
     const b = [123456789n, 987654321n, 123456789n, 987654321n];
@@ -248,4 +272,5 @@ test_karatsuba();
 test_REDC();
 test_mpREDC1();
 test_mpREDC2();
+console.log((0, auxiliary_1.array_long_mul)([1n, 9n, 6n], [9n, 8n, 3n], 10n));
 //# sourceMappingURL=arithmetic.js.map

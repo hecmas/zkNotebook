@@ -96,7 +96,7 @@ function compare(a, b) {
     return 0;
 }
 function trim(a) {
-    let i = a.length - 1;
+    let i = a.length;
     while (a[--i] === 0n)
         ;
     a.length = i + 1;
@@ -259,30 +259,45 @@ function divMod2(a, b, B) {
     return [result, part];
 }
 exports.divMod2 = divMod2;
+function normalize(a, b, B) {
+    let bm = b[b.length - 1];
+    let shift = 1n; // shift cannot be larger than log2(B) - 1
+    while (bm < B / 2n) {
+        b = array_short_mul(b, 2n, B); // left-shift b by 2
+        bm = b[b.length - 1];
+        shift *= 2n;
+    }
+    a = array_short_mul(a, shift, B); // left-shift a by 2^shift
+    return [a, b, shift];
+}
 function array_long_div(a, b, B) {
+    let shift;
+    [a, b, shift] = normalize(a, b, B);
     let a_l = a.length;
     const b_l = b.length;
     const base = B;
     let quotient = [];
     let remainder = [];
     let an = [];
-    while (compare(an, b) < 0n) {
+    while (compare(an, b) === -1) {
         an.unshift(a[--a_l]);
     }
-    let test;
-    let qn;
+    const bm = b[b_l - 1];
+    let test, aguess;
+    let qn, n;
     while (a_l >= 0) {
-        const bm = b[b_l - 1];
-        const n = an.length;
-        let aguess = [an[n - 1]];
-        if (aguess[0] < bm) {
-            aguess.unshift(an[n - 2]);
+        n = an.length; // I think this can be fixed outside
+        if (an[n - 1] < bm) {
+            aguess = [an[n - 2], an[n - 1]];
+        }
+        else {
+            aguess = [an[n - 1]];
         }
         if (an[n - 1] < bm) {
             qn = array_short_div(aguess, bm, base)[0][0]; // this is always a single digit
         }
         else if (an[n - 1] === bm) {
-            if (n > b_l) {
+            if (b_l < n) {
                 qn = base - 1n;
             }
             else {
@@ -293,14 +308,18 @@ function array_long_div(a, b, B) {
             qn = 1n;
         }
         test = array_short_mul(b, qn, base);
-        while (compare(test, an) > 0) { // maximum 2 iterations
+        while (compare(test, an) === 1) { // maximum 2 iterations
             qn--;
             test = array_sub(test, b, base);
         }
         quotient.unshift(qn);
-        remainder = an = array_sub(an, test, base);
+        remainder = array_sub(an, test, base);
+        an = remainder;
+        if (a_l === 0)
+            break;
         an.unshift(a[--a_l]);
     }
+    remainder = array_short_div(remainder, shift, base)[0];
     return [quotient, remainder];
 }
 exports.array_long_div = array_long_div;
@@ -309,19 +328,20 @@ function array_short_div(a, b, B) {
     const base = B;
     let quotient = [];
     let remainder = 0n;
-    let divisor, q;
+    let dividendi;
+    let qi;
     for (let i = a_l - 1; i >= 0; i--) {
-        divisor = remainder * base + a[i];
-        q = divisor / b;
-        remainder = divisor - q * b;
-        quotient.unshift(q);
+        dividendi = remainder * base + a[i];
+        qi = dividendi / b;
+        remainder = dividendi - qi * b;
+        quotient[i] = qi;
     }
     return [quotient, remainder];
 }
 exports.array_short_div = array_short_div;
 const a = (1n << 256n) - 1n;
 // const result = array_short_mul([a, a, a], a, 1n << 256n)
-const result = array_long_div([6n, 5n, 1n, 7n, 2n], [2n, 7n], 10n);
-// const result = array_short_div([4n, 3n, 2n, 2n], 7n, 10n)
+const result = array_long_div([9n, 8n, 7n, 6n], [8n, 1n], 10n);
+// const result = array_short_div([2n, 1n, 1n, 1n], 3n, 1n << 256n)
 console.log(result);
 //# sourceMappingURL=auxiliary.js.map

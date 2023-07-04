@@ -98,12 +98,10 @@ function compare(a: bigint[], b: bigint[]): number {
     return 0;
 }
 
-function trim(a: bigint[]): bigint[] {
+function trim(a: bigint[]): void {
     let i = a.length - 1;
-    while (i > 0 && a[i] === 0n) {
-        i--;
-    }
-    return a.slice(0, i + 1);
+    while (a[--i] === 0n);
+    a.length = i + 1;
 }
 
 export function shift_left(a: bigint[], n: number): bigint[] {
@@ -170,6 +168,7 @@ function _array_sub(a: bigint[], b: bigint[], B: bigint): bigint[] {
     for (; i < alen; i++) {
         result[i] = a[i];
     }
+    trim(result);
     return result;
 }
 export function array_sub(a: bigint[], b: bigint[], B: bigint): bigint[] {
@@ -181,7 +180,7 @@ export function array_sub(a: bigint[], b: bigint[], B: bigint): bigint[] {
         result[result.length - 1] = -result[result.length - 1];
     }
 
-    return trim(result);
+    return result;
 }
 
 export function array_long_mul(a: bigint[], b: bigint[], B: bigint): bigint[] {
@@ -203,5 +202,129 @@ export function array_long_mul(a: bigint[], b: bigint[], B: bigint): bigint[] {
             result[i + j + 1] += carry;
         }
     }
-    return trim(result);
+    trim(result);
+    return result;
 }
+export function array_short_mul(a: bigint[], b: bigint, B: bigint): bigint[] {
+    const alen = a.length;
+    const len = alen;
+    const result = new Array<bigint>(len).fill(0n);
+    let product: bigint;
+    let carry = 0n;
+    let i;
+    for (i = 0; i < alen; i++) {
+        product = a[i] * b + carry;
+        carry = product / B;
+        result[i] = product - carry * B;
+    }
+    while (carry > 0n) {
+        result[i++] = carry % B
+        carry /= B;
+    }
+    trim(result);
+    return result;
+}
+
+// This one is very tricky, found https://github.com/peterolson/BigInteger.js/blob/e5d2154d3c417069c51e7116bafc3b91d0b9fe41/BigInteger.js#L495C99-L495C132
+export function divMod2(a: bigint[], b: bigint[], B: bigint): bigint[][] {
+    let a_l = a.length
+    const b_l = b.length
+    const base = B
+    let result: bigint[] = []
+    let part: bigint[] = []
+    let aguess, guess, xlen, highx, highy, check;
+    while (a_l) {
+        part.unshift(a[--a_l]);
+        trim(part);
+        if (compare(part, b) < 0n) {
+            result.push(0n);
+            continue;
+        }
+        xlen = part.length;
+        highx = part[xlen - 1] * base + part[xlen - 2];
+        highy = b[b_l - 1] * base + b[b_l - 2];
+        if (xlen > b_l) {
+            highx = (highx + 1n) * base;
+        }
+        console.log(highx, highy);
+        guess = highx / highy;
+        do {
+            check = array_short_mul(b, guess, base);
+            if (compare(check, part) <= 0) break;
+            guess--;
+        } while (guess);
+        result.push(guess);
+        part = array_sub(part, check, base);
+    }
+    result.reverse();
+    return [result, part];
+}
+
+export function array_long_div(a: bigint[], b: bigint[], B: bigint): bigint[][] {
+    let a_l = a.length
+    const b_l = b.length
+    const base = B
+    let quotient: bigint[] = []
+    let remainder: bigint[] = []
+    let an: bigint[] = []
+    while (compare(an, b) < 0n) {
+        an.unshift(a[--a_l]);
+    }
+
+    let test: bigint[];
+    let qn: bigint;
+    while (a_l >= 0) {
+        const bm = b[b_l-1];
+        const n = an.length;
+        let aguess = [an[n-1]]
+        if (aguess[0] < bm) {
+            aguess.unshift(an[n-2]);
+        }
+
+        if (an[n-1] < bm) {
+            qn = array_short_div(aguess, bm, base)[0][0]; // this is always a single digit
+        } else if (an[n-1] === bm) {
+            if (n > b_l) {
+                qn = base - 1n;
+            } else {
+                qn = 1n;
+            }
+        } else {
+            qn = 1n;
+        }
+
+        test = array_short_mul(b, qn, base);
+        while (compare(test, an) > 0) { // maximum 2 iterations
+            qn--;
+            test = array_sub(test, b, base);
+        }
+
+        quotient.unshift(qn);
+        remainder = an = array_sub(an, test, base);
+        an.unshift(a[--a_l]);
+    }
+    return [quotient, remainder];
+}
+
+export function array_short_div(a: bigint[], b: bigint, B: bigint): [bigint[], bigint] {
+    let a_l = a.length
+    const base = B
+    let quotient: bigint[] = []
+    let remainder: bigint = 0n;
+    let divisor,q;
+
+    for (let i = a_l - 1; i >= 0; i--) {
+        divisor = remainder * base + a[i];
+        q = divisor / b;
+        remainder = divisor - q * b;
+        quotient.unshift(q);
+    }
+
+    return [quotient, remainder];
+}
+
+const a = (1n << 256n) - 1n;
+// const result = array_short_mul([a, a, a], a, 1n << 256n)
+const result = array_long_div([6n, 5n, 1n, 7n, 2n], [2n, 7n], 10n)
+// const result = array_short_div([4n, 3n, 2n, 2n], 7n, 10n)
+console.log(result);

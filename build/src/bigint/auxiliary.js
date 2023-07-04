@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.array_long_mul = exports.array_sub = exports.array_add = exports.shift_left = exports.bia2scalar = exports.logB = exports.log2 = exports.split_at = exports.mod = exports.egcd = exports.gcd = void 0;
+exports.array_short_div = exports.array_long_div = exports.divMod2 = exports.array_short_mul = exports.array_long_mul = exports.array_sub = exports.array_add = exports.shift_left = exports.bia2scalar = exports.logB = exports.log2 = exports.split_at = exports.mod = exports.egcd = exports.gcd = void 0;
 function gcd(a, b) {
     if (a < b) {
         return gcd(b, a);
@@ -97,10 +97,9 @@ function compare(a, b) {
 }
 function trim(a) {
     let i = a.length - 1;
-    while (i > 0 && a[i] === 0n) {
-        i--;
-    }
-    return a.slice(0, i + 1);
+    while (a[--i] === 0n)
+        ;
+    a.length = i + 1;
 }
 function shift_left(a, n) {
     let result = [];
@@ -166,6 +165,7 @@ function _array_sub(a, b, B) {
     for (; i < alen; i++) {
         result[i] = a[i];
     }
+    trim(result);
     return result;
 }
 function array_sub(a, b, B) {
@@ -177,7 +177,7 @@ function array_sub(a, b, B) {
         result = _array_sub(b, a, B);
         result[result.length - 1] = -result[result.length - 1];
     }
-    return trim(result);
+    return result;
 }
 exports.array_sub = array_sub;
 function array_long_mul(a, b, B) {
@@ -199,7 +199,129 @@ function array_long_mul(a, b, B) {
             result[i + j + 1] += carry;
         }
     }
-    return trim(result);
+    trim(result);
+    return result;
 }
 exports.array_long_mul = array_long_mul;
+function array_short_mul(a, b, B) {
+    const alen = a.length;
+    const len = alen;
+    const result = new Array(len).fill(0n);
+    let product;
+    let carry = 0n;
+    let i;
+    for (i = 0; i < alen; i++) {
+        product = a[i] * b + carry;
+        carry = product / B;
+        result[i] = product - carry * B;
+    }
+    while (carry > 0n) {
+        result[i++] = carry % B;
+        carry /= B;
+    }
+    trim(result);
+    return result;
+}
+exports.array_short_mul = array_short_mul;
+// This one is very tricky, found https://github.com/peterolson/BigInteger.js/blob/e5d2154d3c417069c51e7116bafc3b91d0b9fe41/BigInteger.js#L495C99-L495C132
+function divMod2(a, b, B) {
+    let a_l = a.length;
+    const b_l = b.length;
+    const base = B;
+    let result = [];
+    let part = [];
+    let aguess, guess, xlen, highx, highy, check;
+    while (a_l) {
+        part.unshift(a[--a_l]);
+        trim(part);
+        if (compare(part, b) < 0n) {
+            result.push(0n);
+            continue;
+        }
+        xlen = part.length;
+        highx = part[xlen - 1] * base + part[xlen - 2];
+        highy = b[b_l - 1] * base + b[b_l - 2];
+        if (xlen > b_l) {
+            highx = (highx + 1n) * base;
+        }
+        console.log(highx, highy);
+        guess = highx / highy;
+        do {
+            check = array_short_mul(b, guess, base);
+            if (compare(check, part) <= 0)
+                break;
+            guess--;
+        } while (guess);
+        result.push(guess);
+        part = array_sub(part, check, base);
+    }
+    result.reverse();
+    return [result, part];
+}
+exports.divMod2 = divMod2;
+function array_long_div(a, b, B) {
+    let a_l = a.length;
+    const b_l = b.length;
+    const base = B;
+    let quotient = [];
+    let remainder = [];
+    let an = [];
+    while (compare(an, b) < 0n) {
+        an.unshift(a[--a_l]);
+    }
+    let test;
+    let qn;
+    while (a_l >= 0) {
+        const bm = b[b_l - 1];
+        const n = an.length;
+        let aguess = [an[n - 1]];
+        if (aguess[0] < bm) {
+            aguess.unshift(an[n - 2]);
+        }
+        if (an[n - 1] < bm) {
+            qn = array_short_div(aguess, bm, base)[0][0]; // this is always a single digit
+        }
+        else if (an[n - 1] === bm) {
+            if (n > b_l) {
+                qn = base - 1n;
+            }
+            else {
+                qn = 1n;
+            }
+        }
+        else {
+            qn = 1n;
+        }
+        test = array_short_mul(b, qn, base);
+        while (compare(test, an) > 0) { // maximum 2 iterations
+            qn--;
+            test = array_sub(test, b, base);
+        }
+        quotient.unshift(qn);
+        remainder = an = array_sub(an, test, base);
+        an.unshift(a[--a_l]);
+    }
+    return [quotient, remainder];
+}
+exports.array_long_div = array_long_div;
+function array_short_div(a, b, B) {
+    let a_l = a.length;
+    const base = B;
+    let quotient = [];
+    let remainder = 0n;
+    let divisor, q;
+    for (let i = a_l - 1; i >= 0; i--) {
+        divisor = remainder * base + a[i];
+        q = divisor / b;
+        remainder = divisor - q * b;
+        quotient.unshift(q);
+    }
+    return [quotient, remainder];
+}
+exports.array_short_div = array_short_div;
+const a = (1n << 256n) - 1n;
+// const result = array_short_mul([a, a, a], a, 1n << 256n)
+const result = array_long_div([6n, 5n, 1n, 7n, 2n], [2n, 7n], 10n);
+// const result = array_short_div([4n, 3n, 2n, 2n], 7n, 10n)
+console.log(result);
 //# sourceMappingURL=auxiliary.js.map

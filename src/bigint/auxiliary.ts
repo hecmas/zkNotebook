@@ -1,4 +1,4 @@
-import { t } from "../BN254/constants";
+import { r, t } from "../BN254/constants";
 
 export function gcd(a: bigint, b: bigint): bigint  {
     if (a < b) {
@@ -13,7 +13,7 @@ export function gcd(a: bigint, b: bigint): bigint  {
         b = a % b;
         a = t;
     }
-    
+
     return a;
 }
 export function egcd(a: bigint, b: bigint): bigint[] {
@@ -79,12 +79,12 @@ export function bia2scalar(x: bigint[], B: bigint): bigint {
 // Array operations: I assume little-endian representation of numbers in some base B.
 
 /**
- * 
- * @param a 
- * @param b 
+ *
+ * @param a
+ * @param b
  * @returns 1 if a > b, -1 if a < b, 0 if a == b.
  */
-function compare(a: bigint[], b: bigint[]): number {
+export function compare(a: bigint[], b: bigint[]): number {
     const alen = a.length;
     const blen = b.length;
     if (alen !== blen) {
@@ -97,9 +97,30 @@ function compare(a: bigint[], b: bigint[]): number {
     }
     return 0;
 }
+function isZero(a: bigint[]): boolean {
+    return (a.length === 1) && (a[0] === 0n);
+}
+function isOdd(a: bigint[]): boolean {
+    return (a[0] & 1n) === 1n;
+}
 
-function trim(a: bigint[]): void {
+function Hamming_weight(x: bigint[]): number {
+    let result = 0;
+    for (let i = 0; i < x.length; i++) {
+        let y = x[i];
+        while (y) {
+            result += Number(y & 1n);
+            y = y >> 1n;
+        }
+    }
+    return result;
+}
+
+// it sets a.length = 0 if a = [0n]
+export function trim(a: bigint[]): void {
     let i = a.length;
+    if (i === 1) return;
+
     while (a[--i] === 0n);
     a.length = i + 1;
 }
@@ -142,6 +163,24 @@ export function array_add(a: bigint[], b: bigint[], B: bigint): bigint[] {
     return _array_add(a, b, B);
 }
 
+function array_add_small(a: bigint[], b: bigint, B: bigint): bigint[] {
+    const alen = a.length;
+    let result = new Array<bigint>(alen);
+    let sum = 0n;
+    let i;
+    for (i = 0; i < alen; i++) {
+        sum = a[i] - B + b;
+        b = sum / B;
+        result[i] = sum - b * B;
+        b += 1n;
+    }
+    while (b > 0) {
+        result[i++] = b % B;
+        b = b / B;
+    }
+    return result;
+}
+
 // Assumes a >= b
 function _array_sub(a: bigint[], b: bigint[], B: bigint): bigint[] {
     const alen = a.length;
@@ -179,7 +218,9 @@ export function array_sub(a: bigint[], b: bigint[], B: bigint): bigint[] {
         result = _array_sub(b, a, B);
         result[result.length - 1] = -result[result.length - 1];
     }
-
+    if (result.length === 0) {
+        result.push(0n);
+    }
     return result;
 }
 
@@ -217,15 +258,109 @@ export function array_short_mul(a: bigint[], b: bigint, B: bigint): bigint[] {
         carry = product / B;
         result[i] = product - carry * B;
     }
-    while (carry > 0n) {
-        result[i++] = carry % B
-        carry /= B;
+
+    if (carry > 0n) {
+        result.push(carry);
+    }
+
+    // while (carry > 0n) {
+    //     result[i++] = carry % B
+    //     carry /= B;
+    // }
+    trim(result);
+    return result;
+}
+function array_square(a: bigint[], B: bigint): bigint[] {
+    let len = a.length;
+    let result = new Array<bigint>(len).fill(0n);
+    let product: bigint;
+    let carry: bigint;
+    let a_i: bigint;
+    let a_j: bigint;
+    for (let i = 0; i < len; i++) {
+        a_i = a[i];
+        carry = 0n - a_i * a_i;
+        for (var j = i; j < len; j++) {
+            a_j = a[j];
+            product = 2n * (a_i * a_j) + result[i + j] + carry;
+            carry = product / B;
+
+            result[i + j] = product - carry * B;
+        }
+        result[i + len] = carry;
     }
     trim(result);
     return result;
 }
 
-// This one is very tricky, found https://github.com/peterolson/BigInteger.js/blob/e5d2154d3c417069c51e7116bafc3b91d0b9fe41/BigInteger.js#L495C99-L495C132
+// TODO: Do the comparsion between the three long division algorithms
+
+// Found https://github.com/peterolson/BigInteger.js/blob/e5d2154d3c417069c51e7116bafc3b91d0b9fe41/BigInteger.js#L437
+function divMod1(a: bigint[], b: bigint[], B: bigint): [bigint[],bigint[]] {
+    const a_l = a.length;
+    const b_l = b.length;
+    const base = B;
+    let result = new Array<bigint>(b_l).fill(0n);
+    let divisorMostSignificantDigit = b[b_l - 1];
+    // normalization
+    let lambda = base / (2n * divisorMostSignificantDigit);
+    let remainder = array_short_mul(a, lambda, base);
+    let divisor = array_short_mul(b, lambda, base);
+    let quotientDigit: bigint;
+    let shift;
+    let carry: bigint;
+    let borrow: bigint;
+    let i;
+    let l;
+    let q;
+    if (remainder.length <= a_l) remainder.push(0n);
+    divisor.push(0n);
+    divisorMostSignificantDigit = divisor[b_l - 1];
+    for (shift = a_l - b_l; shift >= 0; shift--) {
+        quotientDigit = base - 1n;
+        if (remainder[shift + b_l] !== divisorMostSignificantDigit) {
+            quotientDigit = (remainder[shift + b_l] * base + remainder[shift + b_l - 1]) / divisorMostSignificantDigit;
+        }
+        // quotientDigit <= base - 1
+        carry = 0n;
+        borrow = 0n;
+        l = divisor.length;
+        for (i = 0; i < l; i++) {
+            carry += quotientDigit * divisor[i];
+            q = carry / base;
+            borrow += remainder[shift + i] - (carry - q * base);
+            carry = q;
+            if (borrow < 0) {
+                remainder[shift + i] = borrow + base;
+                borrow = -1n;
+            } else {
+                remainder[shift + i] = borrow;
+                borrow = 0n;
+            }
+        }
+        while (borrow !== 0n) {
+            quotientDigit -= 1n;
+            carry = 0n;
+            for (i = 0; i < l; i++) {
+                carry += remainder[shift + i] - base + divisor[i];
+                if (carry < 0) {
+                    remainder[shift + i] = carry + base;
+                    carry = 0n;
+                } else {
+                    remainder[shift + i] = carry;
+                    carry = 1n;
+                }
+            }
+            borrow += carry;
+        }
+        result[shift] = quotientDigit;
+    }
+    // denormalization
+    remainder = array_short_div(remainder, lambda, base)[0];
+    return [result, remainder];
+}
+
+// This one is very tricky, found https://github.com/peterolson/BigInteger.js/blob/e5d2154d3c417069c51e7116bafc3b91d0b9fe41/BigInteger.js#L495
 export function divMod2(a: bigint[], b: bigint[], B: bigint): bigint[][] {
     let a_l = a.length
     const b_l = b.length
@@ -246,7 +381,6 @@ export function divMod2(a: bigint[], b: bigint[], B: bigint): bigint[][] {
         if (xlen > b_l) {
             highx = (highx + 1n) * base;
         }
-        console.log(highx, highy);
         guess = highx / highy;
         do {
             check = array_short_mul(b, guess, base);
@@ -274,6 +408,20 @@ function normalize(a: bigint[], b: bigint[], B: bigint) : [bigint[], bigint[], b
 }
 
 export function array_long_div(a: bigint[], b: bigint[], B: bigint): bigint[][] {
+    if (isZero(a)) {
+        return [[0n], [0n]];
+    }
+    if (isZero(b)) {
+        throw new Error("Division by zero");
+    }
+
+    let comparison = compare(a, b);
+    if (comparison === 0) {
+        return [[1n], [0n]];
+    } else if (comparison === -1) {
+        return [[0n], a];
+    }
+
     let shift: bigint;
     [a,b,shift] = normalize(a,b,B);
     let a_l = a.length
@@ -290,7 +438,7 @@ export function array_long_div(a: bigint[], b: bigint[], B: bigint): bigint[][] 
     let test: bigint[], aguess: bigint[];
     let qn: bigint, n: number;
     while (a_l >= 0) {
-        n = an.length; // I think this can be fixed outside
+        n = an.length;
         if (an[n-1] < bm) {
             aguess = [an[n-2], an[n-1]];
         } else {
@@ -318,12 +466,12 @@ export function array_long_div(a: bigint[], b: bigint[], B: bigint): bigint[][] 
         quotient.unshift(qn);
         remainder = array_sub(an, test, base);
         an = remainder;
-
         if (a_l === 0) break;
-
         an.unshift(a[--a_l]);
     }
     remainder = array_short_div(remainder, shift, base)[0];
+    trim(quotient);
+    trim(remainder);
     return [quotient, remainder];
 }
 
@@ -341,11 +489,44 @@ export function array_short_div(a: bigint[], b: bigint, B: bigint): [bigint[], b
         remainder = dividendi - qi * b;
         quotient[i] = qi;
     }
+    trim(quotient);
     return [quotient, remainder];
 }
 
+function check_array_div(a: bigint[], b: bigint[], B: bigint): boolean {
+    const [q1, r1] = array_long_div(a, b, B);
+    const [q2, r2] = divMod1(a, b, B);
+    if (compare(q1, q2) !== 0 || compare(r1, r2) !== 0) {
+        console.log(`Array long div: quotient: [${q1}], remainder: [${r1}]`);
+        console.log(`quotient: [${q2}], remainder: [${r2}]`);
+        return false;
+    }
+
+    console.log(`quotient: [${q1}]\n\nremainder: [${r1}]`);
+    if (compare(array_add(array_long_mul(q1, b, B), r1, B), a) !== 0) {
+        return false;
+    }
+
+    return true;
+}
+
+function array_mod_pow(b: bigint[], exp: bigint[], mod: bigint[], B: bigint): bigint[] {
+    if (isZero(mod)) throw new Error("Cannot take modPow with modulus 0");
+    let r = [1n];
+    let base = array_long_div(b, mod, B)[1];
+    while (!isZero(exp)) {
+        if (isZero(base)) return [0n];
+        if (isOdd(exp)) {
+            r = array_long_div(array_long_mul(r, base, B),mod,B)[1];
+        }
+        exp = array_short_div(exp, 2n, B)[0]; // this can be optimized
+        base = array_long_div(array_square(base, B),mod,B)[1];
+    }
+    return r;
+};
+
 const a = (1n << 256n) - 1n;
-// const result = array_short_mul([a, a, a], a, 1n << 256n)
-const result = array_long_div([9n, 8n, 7n, 6n], [8n, 1n], 10n)
-// const result = array_short_div([2n, 1n, 1n, 1n], 3n, 1n << 256n)
-console.log(result);
+// console.log(check_array_div([a, 7n, a, 12n, a, 20n, a, 80n], [a, a, a, a, 100n], 1n << 256n));
+// console.log(array_mod_pow([2n, 1n, 1n, 1n], [3n, 5n], [4n, 6n, 7n], 1n << 256n));
+// console.log(array_mod_pow([100n, 2831023n, 0n, 73916234139162n], [115792089237316195423570985008687907853269984665640564039457584007913129639935n], [0n, 0n, 8238129386n, 23102318237n], 1n << 256n));
+// console.log(array_mod_pow([100n, 2831023n, 0n, 73916234139162n, 100n, 2831023n, 0n, 73916234139162n,100n, 2831023n, 0n, 73916234139162n], [903741926349715234612309461283471234n], [0n, 0n, 8238129386n, 23102318237n, 1892397612351n, 7246598123051n, 8238129386n, 1264591241237897123126n], 1n << 256n));

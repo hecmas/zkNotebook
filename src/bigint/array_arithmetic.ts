@@ -1,6 +1,6 @@
 // I assume little-endian representation of numbers in some base B.
 
-import {  gcd, egcd, array_sub, split_at, log2, logB, bia2scalar, array_add, shift_left, array_long_mul } from "./auxiliary";
+import {  gcd, egcd, array_sub, split_at, log2, logB, bia2scalar, compare, trim, array_add, shift_left, array_long_mul } from "./auxiliary";
 
 // const N = Number.MAX_SAFE_INTEGER; // 2^53 - 1 For computations.
 // const M = Number.MAX_VALUE; // 2^1024 - 1 For representation.
@@ -16,20 +16,20 @@ const KARAT_CUTOFF = 1n << 4n; // TODO: Find a precise value.
  * @param B The base of the representation.
  * @returns The product of a and b, represented as an array of `al + bl` base-`B` digits.
  */
-function array_karatsuba_mul(a: bigint[], b: bigint[], B: bigint) : bigint[] {
-    const n = Math.max(a.length, b.length);
+export function array_karatsuba_mul(a: bigint[], b: bigint[], B: bigint) : bigint[] {
+    let n = a.length >= b.length ? a.length : b.length;
 
     // TODO: This has been arbitrarily chosen. Find a precise value.
-    if (n <= 10) {
+    if (n <= 1) {
         return array_long_mul(a, b, B);
     }
 
-    const n2 = n >> 1;
+    n = n >> 1;
 
-    const ah = a.slice(n2);
-    const al = a.slice(0, n2);
-    const bh = b.slice(n2);
-    const bl = b.slice(0, n2);
+    const ah = a.slice(n);
+    const al = a.slice(0, n);
+    const bh = b.slice(n);
+    const bl = b.slice(0, n);
 
     const d0 = array_karatsuba_mul(al, bl, B);
     const d1 = array_karatsuba_mul(array_add(al, ah, B), array_add(bl, bh, B), B);
@@ -38,14 +38,85 @@ function array_karatsuba_mul(a: bigint[], b: bigint[], B: bigint) : bigint[] {
     const result = array_add(
         array_add(
             d0,
-            shift_left(array_sub(array_sub(d1, d0, B), d2, B), n2),
+            shift_left(array_sub(array_sub(d1, d0, B), d2, B), n),
             B
         ),
-        shift_left(d2, 2 * n2),
+        shift_left(d2, 2 * n),
         B
     );
+    trim(result);
     return result;
 }
+
+// TODO: Iterative verison of Karatsuba
+// type Frame = {
+//     a: bigint[], b: bigint[], n: number, stage: number, // calling arguments
+//     ah: bigint[], al: bigint[], bh: bigint[], bl: bigint[],
+//     t1: bigint[], albl: bigint[], ahbh: bigint[], // local vars
+// };
+
+// function create_new_frame(a: bigint[], b: bigint[], n: number, stage: number): Frame {
+//     return { a, b, n, stage, ah: [0n], al: [0n], bh: [0n], bl: [0n], t1: [0n], albl: [0n], ahbh: [0n] };
+// }
+
+// function array_karatsuba_mul_iter(a: bigint[], b: bigint[], B: bigint) : bigint[] {
+//     const start = create_new_frame(a, b, a.length >= b.length ? b.length : a.length, 0); // top frame
+//     let stack = [start];
+
+//     // arrow mul
+//     const mul = (a: bigint[], b: bigint[], c: bigint[]) => {
+//         if (stack[stack.length - 1].n !== 1) {
+//             stack[stack.length - 1].stage++;
+//             stack.push(create_new_frame(a, b, stack[stack.length - 1].n >> 1, 0));
+//         } else {
+//             c = [a[0] * b[0]];
+//             stack.pop();
+//         }
+//     }
+
+//     while (stack.length > 0) {
+//         const frame = stack[stack.length - 1];
+
+//         switch (frame.stage) {
+//             case 0:
+//                 const n = frame.n >> 1;
+
+//                 for (let i = 0; i < n; i++) frame.al[i] = frame.a[i];
+//                 for (let i = n; i < frame.a.length; i++) frame.ah[i - n] = frame.a[i];
+//                 for (let i = 0; i < n; i++) frame.bl[i] = frame.b[i];
+//                 for (let i = n; i < frame.b.length; i++) frame.bh[i - n] = frame.b[i];
+
+//                 mul(frame.al, frame.bl, frame.albl);
+//                 break;
+
+//             case 1:
+//                 mul(frame.ah, frame.bh, frame.ahbh);
+//                 break;
+
+//             case 2:
+//                 frame.t1 = array_add(frame.al, frame.ah, B);
+//                 const tmp = array_add(frame.bl, frame.bh, B)
+//                 mul(frame.t1, tmp, frame.t1);
+//                 break;
+
+//             case 3:
+//                 frame.al = array_add(frame.albl, frame.ahbh, B);
+//                 frame.t1 = array_sub(frame.t1, frame.al, B);
+//                 frame.t1 = shift_left(frame.t1, frame.n);
+//                 frame.ahbh = shift_left(frame.ahbh, 2 * frame.n);
+//                 frame.t1 = array_add(frame.t1, frame.albl, B);
+//                 frame.t1 = array_add(frame.t1, frame.ahbh, B);
+//                 stack.pop(); // pop the top (last) frame
+//                 break;
+
+//             default:
+//                 throw new Error("Invalid stage");
+//         }
+//     }
+
+//     return start.t1;
+// }
+
 
 /**
  * It computes the square of a positive integer using Karatsuba's algorithm.
@@ -63,10 +134,10 @@ function karatsuba_square(a: bigint) : bigint {
     const [ah, al] = split_at(a, m2);
 
     const d0 = karatsuba_square(al);
-    const d1 = karatsuba_square(al + ah);
+    const albl = karatsuba_square(al + ah);
     const d2 = karatsuba_square(ah);
 
-    const result = d0 + (d1 - d0 - d2) * 2n ** m2 + d2 * 2n ** (2n * m2);
+    const result = d0 + (albl - d0 - d2) * 2n ** m2 + d2 * 2n ** (2n * m2);
     return result;
 }
 
@@ -241,6 +312,19 @@ function mpREDC(T: bigint[], R: bigint, M: bigint[], Minv: bigint, B: bigint): b
 //     }
 // }
 
+function test_karatsuba(a: bigint[], b: bigint[], B: bigint) {
+    const expectedMul = array_long_mul(a, b, B);
+    const mul = array_karatsuba_mul(a, b, B);
+    // const mul_iter = array_karatsuba_mul_iter(a, b, B);
+    if (compare(expectedMul, mul) !== 0) {
+        throw new Error(`Error: expected [${expectedMul}], got [${mul}]`);
+    } else {
+        console.log(`[${a}]·[${b}] = [${mul}]\n`);
+        // console.log(mul_iter);
+        console.log("Karatsuba Mul test passed");
+    }
+}
+
 function test_REDC() {
     const R = 1n << 16n;
     const M = 123456789n;
@@ -312,12 +396,14 @@ function test_mpREDC2() {
 }
 
 // test_karatsuba();
-test_REDC();
-test_mpREDC1();
-test_mpREDC2();
+// test_REDC();
+// test_mpREDC1();
+// test_mpREDC2();
 
-console.log(shift_left([1n,2n], 2));
-console.log(array_add([2n,6n,2n], [8n,3n], 10n));
-console.log(array_add([8n,3n], [2n,6n,2n], 10n));
-console.log(array_sub([1n,2n], [0n,4n], 10n));
-console.log(array_long_mul([2n,6n,2n], [8n,3n], 10n));
+// console.log(shift_left([1n,2n], 2));
+// console.log(array_add([2n,6n,2n], [8n,3n], 10n));
+// console.log(array_add([8n,3n], [2n,6n,2n], 10n));
+// console.log(array_sub([1n,2n], [0n,4n], 10n));
+// test_karatsuba([2n,6n], [8n], 1n << 256n);
+// test_karatsuba([10n,50n], [98n,1000n], 1n << 256n);
+// test_karatsuba([2n,6n,2n], [8n,3n,3n], 1n << 256n);

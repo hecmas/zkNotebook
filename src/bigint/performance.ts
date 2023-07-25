@@ -2,9 +2,9 @@ import { array_karatsuba_mul } from "./array_arithmetic";
 import { array_long_mul } from "./auxiliary";
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
 
+const maxlen = 100; // number of experiments
 const repeats = 1000;  // number of repetitions of the experiment
 const ninputs = 10; // number of inputs in each experiment
-const maxlen = 100; // maximum length of the inputs
 const B = 1n << 256n;
 
 const input_generator = (len: number) => {

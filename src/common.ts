@@ -1,6 +1,26 @@
 import { EllipticCurveOverFq, PointOverFq } from "./ellipticCurve";
 import { ExtensionField } from "./extensionField";
 
+// TODO: It can be optimized http://math.colgate.edu/~integers/a8/a8.pdf
+export function int2wNAF(k: bigint, w: number = 2): number[] {
+    const powOfw = 2n ** BigInt(w);
+
+    let NAF: number[] = [];
+    while (k > 0n) {
+        if (k & 1n) {
+            // signed modulo 2^w, i.e., push the odd integer x s.t. -2^(w-1) + 1 <= x <= 2^(w-1) - 1
+            const kred = k % powOfw;
+            const x = kred >= powOfw / 2n ? kred - powOfw : kred;
+            NAF.push(Number(x));
+            k -= x;
+        } else {
+            NAF.push(0);
+        }
+        k /= 2n;
+    }
+    return NAF;
+}
+
 export function log2(x: bigint): number {
     if (x == 0n) return 0;
 

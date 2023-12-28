@@ -1,17 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.E12 = exports.tG2 = exports.G2 = exports.tE = exports.b2 = exports.a2 = exports.G1 = exports.E = exports.Fp12b = exports.Fp4 = exports.Fp12a = exports.Fp6 = exports.Fp12 = exports.Fp2 = exports.Fp = exports.xi = exports.beta = void 0;
+exports.E12 = exports.tG2 = exports.G2 = exports.tE = exports.b2 = exports.a2 = exports.EFast = exports.G1 = exports.E = exports.Fp12b = exports.Fp4 = exports.Fp12a = exports.Fp6 = exports.Fp12 = exports.Fp2 = exports.Fp = exports.xi = void 0;
 const ellipticCurve_1 = require("../ellipticCurve");
 const extensionField_1 = require("../extensionField");
 const primeField_1 = require("../primeField");
+const common_1 = require("./common");
 const constants_1 = require("./constants");
 // BN254 curve parameters
 // https://hackmd.io/kcEJAWISQ56eE6YpBnurgw
 // Field Extensions
-exports.beta = -1n; // quadratic non-residue in Fp
+// export const beta = -1n; // quadratic non-residue in Fp
 exports.xi = [9n, 1n]; // quadratic and cubic non-residue in Fp2
 exports.Fp = new primeField_1.PrimeField(constants_1.p);
-exports.Fp2 = new extensionField_1.ExtensionField(exports.Fp, [-exports.beta, 0n, 1n]);
+exports.Fp2 = new extensionField_1.ExtensionField(exports.Fp, [1n, 0n, 1n]);
 exports.Fp12 = new extensionField_1.ExtensionFieldOverFq(exports.Fp2, [
     exports.Fp2.neg(exports.xi),
     [0n],
@@ -30,6 +31,26 @@ exports.Fp12b = new extensionField_1.ExtensionFieldOverFqOverFq(exports.Fp4, [[[
 exports.E = new ellipticCurve_1.EllipticCurveOverFp(0n, 3n, exports.Fp);
 // Generator of E(Fp)[r] = E(Fp)
 exports.G1 = { x: 1n, y: 2n };
+// More performant implementation of scalar multiplication for BN254
+class BN254 extends ellipticCurve_1.EllipticCurveOverFp {
+    endomorphism(P) {
+        const x = this.Fp.mul(P.x, constants_1.beta);
+        const y = P.y;
+        return { x, y };
+    }
+    escalarMulGLV(P, k, w = 2) {
+        if (k === 0n)
+            return this.zero;
+        if (k < 0n) {
+            k = -k;
+            P = this.neg(P);
+        }
+        const [k1, k2] = (0, common_1.split_scalar_endo)(k, constants_1.r);
+        const eP = this.endomorphism(P);
+        return this.doubleScalarMul(P, k1, eP, k2, w);
+    }
+}
+exports.EFast = new BN254(0n, 3n, exports.Fp);
 // Twisted curve E': y² = x³ + 3/xi over Fp2
 exports.a2 = [0n];
 exports.b2 = exports.Fp2.div([3n, 0n], exports.xi);
@@ -45,6 +66,7 @@ exports.G2 = {
         4082367875863433681332203403145435568316851327593401208105741076214120093531n,
     ],
 };
+// Twist of G2 to E(Fp12)
 exports.tG2 = {
     x: [
         [0n],

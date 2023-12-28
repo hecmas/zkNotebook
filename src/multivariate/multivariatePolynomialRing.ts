@@ -177,6 +177,17 @@ export class MultivariatePolynomialRing {
         return !this.eq(a, b);
     }
 
+    // Functionality
+    increase_nvars(a: ArrayMap, n: number): ArrayMap {
+        const result = new ArrayMap();
+        for (const [k, v] of a) {
+            const pad = new Array<number>(n).fill(0);
+            const kk = pad.concat(k);
+            result.set(kk, v);
+        }
+        return result;
+    }
+
     eval(pol: ArrayMap, x: bigint[]): bigint {
         const nvars = count_number_of_variables(pol);
 

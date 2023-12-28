@@ -9,5 +9,6 @@ Test 2/3:
 	GLV method with wNAF double scalar multiplication with w = 4: total time is 12m35.619s
 
 Test 3/3:
-	Double-and-add style: total time is 44m8.350s
-	wNAF method for scalar multiplication with w = 5: total time is 40m31.775s
+	Double-and-add style: total time is 14m8.215s
+	wNAF method for scalar multiplication with w = 5: total time is 11m21.073s
+	GLV method with wNAF double scalar multiplication with w = 5: total time is 12m31.586s

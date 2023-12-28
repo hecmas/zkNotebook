@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const array_arithmetic_1 = require("./array_arithmetic");
 const auxiliary_1 = require("./auxiliary");
 const bigintRnd = require("bigint-rnd"); // 0 <= bigintRnd(n) < n
-const repeats = 1000; // set number of repeats depending on cases complexity
-const ninputs = 10; // chosen arbitrary
-const maxlen = 100; // chosen arbitrary
+const maxlen = 100; // number of experiments
+const repeats = 1000; // number of repetitions of the experiment
+const ninputs = 10; // number of inputs in each experiment
 const B = 1n << 256n;
 const input_generator = (len) => {
     let X = [];
@@ -30,7 +30,9 @@ const test = (repeats, inlen, description, action) => {
     }
     const t2 = Date.now();
     const dt = t2 - t1;
-    console.log(`${description}: total time is ${dt} ms`);
+    const minutes = Math.floor(dt / 60000);
+    const seconds = ((dt % 60000) / 1000).toFixed(3);
+    console.log(`${description}: total time is ${minutes}m${seconds}s`);
 };
 // Performance tests:
 for (let i = 1; i <= maxlen; i++) {

@@ -33,7 +33,9 @@ const test = (repeats: number, inlen: number, description: string, action: (X: a
     }
     const t2 = Date.now();
     const dt = t2 - t1;
-    console.log(`${description}: total time is ${dt} ms`);
+    const minutes = Math.floor(dt / 60000);
+    const seconds = ((dt % 60000) / 1000).toFixed(3);
+    console.log(`${description}: total time is ${minutes}m${seconds}s`);
 };
 
 // Performance tests:

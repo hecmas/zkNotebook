@@ -113,11 +113,13 @@ function Hamming_weight(x) {
     }
     return result;
 }
-// it sets a.length = 0 if a = [0n]
+// it sets a.length = 1 if a = [0n]
 function trim(a) {
-    let i = a.length;
-    if (i === 1)
+    if (a.length === 1 && a[0] === 0n) {
+        a.length = 1;
         return;
+    }
+    let i = a.length;
     while (a[--i] === 0n)
         ;
     a.length = i + 1;
@@ -270,7 +272,7 @@ function array_short_mul(a, b, B) {
 exports.array_short_mul = array_short_mul;
 function array_square(a, B) {
     let len = a.length;
-    let result = new Array(len).fill(0n);
+    let result = new Array(2 * len).fill(0n);
     let product;
     let carry;
     let a_i;
@@ -432,27 +434,34 @@ function array_long_div(a, b, B) {
     let test, aguess;
     let qn, n;
     while (a_l >= 0) {
-        n = an.length;
-        if (an[n - 1] < bm) {
-            aguess = [an[n - 2], an[n - 1]];
-        }
-        else {
-            aguess = [an[n - 1]];
-        }
-        if (an[n - 1] < bm) {
-            qn = array_short_div(aguess, bm, base)[0][0]; // this is always a single digit
-        }
-        else if (an[n - 1] === bm) {
-            if (b_l < n) {
-                qn = base - 1n;
+        function findQn() {
+            if (compare(an, b) === -1) {
+                return 0n;
+            }
+            n = an.length;
+            if (an[n - 1] < bm) {
+                aguess = [an[n - 2], an[n - 1]];
+            }
+            else {
+                aguess = [an[n - 1]];
+            }
+            if (an[n - 1] < bm) {
+                qn = array_short_div(aguess, bm, base)[0][0]; // this is always a single digit
+            }
+            else if (an[n - 1] === bm) {
+                if (b_l < n) {
+                    qn = base - 1n;
+                }
+                else {
+                    qn = 1n;
+                }
             }
             else {
                 qn = 1n;
             }
+            return qn;
         }
-        else {
-            qn = 1n;
-        }
+        qn = findQn();
         test = array_short_mul(b, qn, base);
         while (compare(test, an) === 1) { // maximum 2 iterations
             qn--;
@@ -522,6 +531,10 @@ function array_mod_pow(b, exp, mod, B) {
 const a = (1n << 256n) - 1n;
 // console.log(check_array_div([a, 7n, a, 12n, a, 20n, a, 80n], [a, a, a, a, 100n], 1n << 256n));
 // console.log(array_mod_pow([2n, 1n, 1n, 1n], [3n, 5n], [4n, 6n, 7n], 1n << 256n));
-// console.log(array_mod_pow([100n, 2831023n, 0n, 73916234139162n], [115792089237316195423570985008687907853269984665640564039457584007913129639935n], [0n, 0n, 8238129386n, 23102318237n], 1n << 256n));
-// console.log(array_mod_pow([100n, 2831023n, 0n, 73916234139162n, 100n, 2831023n, 0n, 73916234139162n,100n, 2831023n, 0n, 73916234139162n], [903741926349715234612309461283471234n], [0n, 0n, 8238129386n, 23102318237n, 1892397612351n, 7246598123051n, 8238129386n, 1264591241237897123126n], 1n << 256n));
+// console.log(Hamming_weight([a, a]))
+// console.log(array_mod_pow([2n, 1n, 1n, 1n], [a, a], [4n, 6n, 7n], 1n << 256n));
+console.log(array_short_mul([
+    115792089237316195423570985008687907853269984665640564039457584007913129639935n,
+    115792089237316195423570985008687907853269984665640564039457584007913129639935n,
+], 115792089237316195423570985008687907853269984665640564039457584007913129639935n, 1n << 256n));
 //# sourceMappingURL=auxiliary.js.map

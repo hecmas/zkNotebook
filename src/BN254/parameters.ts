@@ -2,19 +2,21 @@ import {
     EllipticCurveOverFp,
     EllipticCurveOverFq,
     EllipticCurveOverFqOverFq,
+    PointOverFp,
 } from "../ellipticCurve";
 import { ExtensionField, ExtensionFieldOverFq, ExtensionFieldOverFqOverFq } from "../extensionField";
 import { PrimeField } from "../primeField";
-import { p } from "./constants";
+import { split_scalar_endo } from "./common";
+import { beta, lambda, p, r } from "./constants";
 
 // BN254 curve parameters
 // https://hackmd.io/kcEJAWISQ56eE6YpBnurgw
 
 // Field Extensions
-export const beta = -1n; // quadratic non-residue in Fp
+// export const beta = -1n; // quadratic non-residue in Fp
 export const xi = [9n, 1n]; // quadratic and cubic non-residue in Fp2
 export const Fp = new PrimeField(p);
-export const Fp2 = new ExtensionField(Fp, [-beta, 0n, 1n]);
+export const Fp2 = new ExtensionField(Fp, [1n, 0n, 1n]);
 export const Fp12 = new ExtensionFieldOverFq(Fp2, [
     Fp2.neg(xi),
     [0n],
@@ -36,6 +38,29 @@ export const Fp12b = new ExtensionFieldOverFqOverFq(Fp4, [[[0n], [-1n,0n]], [[0n
 export const E = new EllipticCurveOverFp(0n, 3n, Fp);
 // Generator of E(Fp)[r] = E(Fp)
 export const G1 = { x: 1n, y: 2n };
+// More performant implementation of scalar multiplication for BN254
+class BN254 extends EllipticCurveOverFp {
+    endomorphism(P: PointOverFp): PointOverFp {
+        const x = this.Fp.mul(P.x, beta);
+        const y = P.y;
+        return { x, y };
+    }
+
+    escalarMulGLV(P: PointOverFp, k: bigint, w: number = 2): PointOverFp {
+        if (k === 0n) return this.zero;
+
+        if (k < 0n) {
+            k = -k;
+            P = this.neg(P);
+        }
+
+        const [k1, k2] = split_scalar_endo(k, r);
+        const eP = this.endomorphism(P);
+
+        return this.doubleScalarMul(P, k1, eP, k2, w);
+    }
+}
+export const EFast = new BN254(0n, 3n, Fp);
 
 // Twisted curve E': y² = x³ + 3/xi over Fp2
 export const a2 = [0n];
@@ -52,7 +77,7 @@ export const G2 = {
         4082367875863433681332203403145435568316851327593401208105741076214120093531n,
     ],
 };
-
+// Twist of G2 to E(Fp12)
 export const tG2 = {
     x: [
         [0n],

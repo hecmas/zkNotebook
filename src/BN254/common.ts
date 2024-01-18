@@ -78,3 +78,60 @@ export function line(
         return [a, [0n], [0n], b, c, [0n]];
     }
 }
+
+// TODO: Add flags for k1 and k2 being negative???
+// Check https://hackmd.io/LG4IYz_qRYiiBFLN9NjbCw?view
+export function split_scalar_endo(k: bigint, n: bigint): [bigint, bigint] {
+    const v11 = 0x89d3256894d213e3n;
+    const v12 = -0x6f4d8248eeb859fc8211bbeb7d4f1128n;
+    const v21 = 0x6f4d8248eeb859fd0be4e1541221250bn;
+    const v22 = 0x89d3256894d213e3n;
+
+    const c1 = (v22 * k) / n;
+    const c2 = (-v12 * k) / n;
+    const k1 = mod(k - c1 * v11 - c2 * v21, n);
+    const k2 = mod(-c1 * v12 - c2 * v22, n);
+
+    return [k1, k2];
+
+    // Alternative implementation
+    // let k2 = -c1 * v12 - c2 * v22;
+    // const r2 = mod(k2, n);
+    // const k1 = mod(k - r2 * lambda, n);
+
+    // if (mod(k1 + k2 * lambda,n) !== k) throw new Error("Splitting failed");
+
+    // return [k1, r2];
+
+    function mod(a: bigint, b: bigint): bigint {
+        const result = a % b;
+        return result >= 0n ? result : result + b;
+    }
+}
+
+// Field isomporphism between Fp2[w]/<w⁶ - (9+u)> and Fp6[w]/<w² - v>
+function iso(b: bigint[][]): bigint[][][] {
+    return [
+        [b[0], b[2], b[4]],
+        [b[1], b[3], b[5]],
+    ];
+}
+
+// Field isomporphism between Fp2[w]/<w⁶ - (9+u)> and Fp4[w³]/<(w³)² - (9+u)>
+function iso2(b: bigint[][]): bigint[][][] {
+    return [
+        [b[0], b[3]],
+        [b[1], b[4]],
+        [b[2], b[5]],
+    ];
+}
+
+// Field isomporphism between Fp6[w]/<w² - v> and Fp2[w]/<w⁶ - (9+u)>
+function inv_iso(a: bigint[][][]): bigint[][] {
+    return [a[0][0], a[1][0], a[0][1], a[1][1], a[0][2], a[1][2]];
+}
+
+// Field isomporphism between Fp4[w³]/<(w³)² - (9+u)> and Fp2[w]/<w⁶ - (9+u)>
+function inv_iso2(a: bigint[][][]): bigint[][] {
+    return [a[0][0], a[1][0], a[2][0], a[0][1], a[1][1], a[2][1]];
+}

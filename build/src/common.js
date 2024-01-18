@@ -1,6 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.line = exports.FrobeniusMap = exports.log2 = void 0;
+exports.line = exports.FrobeniusMap = exports.log2 = exports.int2wNAF = void 0;
+// TODO: It can be optimized http://math.colgate.edu/~integers/a8/a8.pdf
+function int2wNAF(k, w = 2) {
+    const powOfw = 2n ** BigInt(w);
+    let NAF = [];
+    while (k > 0n) {
+        if (k & 1n) {
+            // signed modulo 2^w, i.e., push the odd integer x s.t. -2^(w-1) + 1 <= x <= 2^(w-1) - 1
+            const kred = k % powOfw;
+            const x = kred >= powOfw / 2n ? kred - powOfw : kred;
+            NAF.push(Number(x));
+            k -= x;
+        }
+        else {
+            NAF.push(0);
+        }
+        k /= 2n;
+    }
+    return NAF;
+}
+exports.int2wNAF = int2wNAF;
 function log2(x) {
     if (x == 0n)
         return 0;

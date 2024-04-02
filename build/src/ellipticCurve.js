@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.embedding_degree = exports.EllipticCurveOverFqOverFq = exports.EllipticCurveOverFq = exports.EllipticCurveOverFp = void 0;
-const sqrt = require("bigint-isqrt");
+const common_1 = require("./common");
 // TODO: Implement Schoof's algorithm
 // function Schoof_algorithm(a: bigint, b: bigint, p: bigint){
 //     let S = [];
@@ -82,6 +82,14 @@ class EllipticCurveOverFp {
         const y = this.Fp.sub(this.Fp.mul(m, this.Fp.sub(P.x, x)), P.y);
         return { x, y };
     }
+    double(P) {
+        if (this.is_zero(P))
+            return this.zero;
+        let m = this.Fp.div(this.Fp.add(this.Fp.mul(3n, this.Fp.mul(P.x, P.x)), this.a), this.Fp.mul(2n, P.y));
+        const x = this.Fp.sub(this.Fp.sub(this.Fp.mul(m, m), P.x), P.x);
+        const y = this.Fp.sub(this.Fp.mul(m, this.Fp.sub(P.x, x)), P.y);
+        return { x, y };
+    }
     sub(P, Q) {
         return this.add(P, this.neg(Q));
     }
@@ -103,6 +111,100 @@ class EllipticCurveOverFp {
             R = this.add(R, R);
             if (binary[i] === "1") {
                 R = this.add(R, P);
+            }
+        }
+        return R;
+    }
+    escalarMulwNAF(P, k, w = 2) {
+        if (k === 0n)
+            return this.zero;
+        if (k < 0n) {
+            k = -k;
+            P = this.neg(P);
+        }
+        // Precompute a table containing the points [-2ʷ⁻¹ + 1]P, ..., -3P, -P, P, 3P, 5P, ..., [2ʷ⁻¹ - 1]P
+        // This requires 1 doubling and 2ʷ⁻² - 1 additions
+        let P2 = this.double(P);
+        let Ptable = { "-1": this.neg(P), "1": P };
+        for (let i = 1; i < 2 ** (w - 1) - 1; i += 2) {
+            const iP = this.add(Ptable[i], P2);
+            Ptable[i + 2] = iP;
+            Ptable[-i - 2] = this.neg(iP);
+        }
+        let R = this.zero;
+        let kwNAF = (0, common_1.int2wNAF)(k, w);
+        // This requires kwNAF.length doubling and, on average, kwNAF.length/w additions
+        for (let i = kwNAF.length - 1; i >= 0; i--) {
+            R = this.double(R);
+            if (kwNAF[i] !== 0) {
+                R = this.add(R, Ptable[kwNAF[i]]);
+            }
+        }
+        return R;
+    }
+    doubleScalarMul(P, k, Q, l, w = 2) {
+        if (k === 0n && l === 0n) {
+            return this.zero;
+        }
+        else if (k === 0n) {
+            return this.escalarMulwNAF(Q, l, w);
+        }
+        else if (l === 0n) {
+            return this.escalarMulwNAF(P, k, w);
+        }
+        if (k < 0n) {
+            k = -k;
+            P = this.neg(P);
+        }
+        if (l < 0n) {
+            l = -l;
+            Q = this.neg(Q);
+        }
+        // I need to compute a table with kP + lQ for odd k,l in [-2ʷ⁻¹ + 1, 2ʷ⁻¹ - 1]
+        let Ptable = { "-1": this.neg(P), "1": P };
+        let Qtable = { "-1": this.neg(Q), "1": Q };
+        let PQtable;
+        // 1] Compute kP and lQ separately
+        const P2 = this.double(P);
+        const Q2 = this.double(Q);
+        for (let i = 1; i < 2 ** (w - 1) - 1; i += 2) {
+            const iP = this.add(Ptable[i], P2);
+            Ptable[i + 2] = iP;
+            Ptable[-i - 2] = this.neg(iP);
+            const iQ = this.add(Qtable[i], Q2);
+            Qtable[i + 2] = iQ;
+            Qtable[-i - 2] = this.neg(iQ);
+        }
+        // // 2] Compute the cross additions
+        // for (let i = -(2**(w-1)) + 1; i <= 2**(w-1) - 1; i += 2) {
+        //     for (let j = -(2**(w-1)) + 1; j <= 2**(w-1) - 1; j += 2) {
+        //         const iPjQ = this.add(Ptable[i], Qtable[j]);
+        //         const ij = String(i) + String(j);
+        //         const nij = String(-i-j);
+        //         PQtable[[i,j]] = iPjQ;
+        //         PQtable[-i-j] = this.neg(iPjQ);
+        //     }
+        // }
+        let kwNAF = (0, common_1.int2wNAF)(k, w);
+        let lwNAF = (0, common_1.int2wNAF)(l, w);
+        let len = Math.max(kwNAF.length, lwNAF.length);
+        if (kwNAF.length < len) {
+            kwNAF = kwNAF.concat(Array(len - kwNAF.length).fill(0));
+        }
+        else if (lwNAF.length < len) {
+            lwNAF = lwNAF.concat(Array(len - lwNAF.length).fill(0));
+        }
+        let R = this.zero;
+        for (let i = kwNAF.length - 1; i >= 0; i--) {
+            R = this.double(R);
+            if (kwNAF[i] !== 0 && lwNAF[i] === 0) {
+                R = this.add(R, Ptable[kwNAF[i]]);
+            }
+            else if (kwNAF[i] === 0 && lwNAF[i] !== 0) {
+                R = this.add(R, Qtable[lwNAF[i]]);
+            }
+            else if (kwNAF[i] !== 0 && lwNAF[i] !== 0) {
+                R = this.add(R, this.add(Ptable[kwNAF[i]], Qtable[lwNAF[i]]));
             }
         }
         return R;
@@ -313,17 +415,6 @@ function embedding_degree(Fp, r) {
     return k;
 }
 exports.embedding_degree = embedding_degree;
-// Tests
-// const Fp = new PrimeField(11n);
-// const E = new EllipticCurveOverFp(0n, 4n, Fp);
-// const r = 3n;
-// const k = E.embedding_degree(r);
-// console.log(k);
-// const Fp = new PrimeField(11n);
-// const E = new EllipticCurveOverFp(7n, 2n, Fp);
-// const r = 7n;
-// const k = E.embedding_degree(r);
-// console.log(k);
 // export class EllipticCurve<T extends FiniteField<U>, U> {
 //     readonly a: bigint;
 //     readonly b: bigint;

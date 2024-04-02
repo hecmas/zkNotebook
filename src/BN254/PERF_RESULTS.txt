@@ -1,0 +1,14 @@
+Test 1/3:
+	Double-and-add style: total time is 14m11.334s
+	wNAF method for scalar multiplication with w = 3: total time is 11m59.115s
+	GLV method with wNAF double scalar multiplication with w = 3: total time is 13m13.886s
+
+Test 2/3:
+	Double-and-add style: total time is 14m10.720s
+	wNAF method for scalar multiplication with w = 4: total time is 11m33.297s
+	GLV method with wNAF double scalar multiplication with w = 4: total time is 12m35.619s
+
+Test 3/3:
+	Double-and-add style: total time is 14m8.215s
+	wNAF method for scalar multiplication with w = 5: total time is 11m21.073s
+	GLV method with wNAF double scalar multiplication with w = 5: total time is 12m31.586s

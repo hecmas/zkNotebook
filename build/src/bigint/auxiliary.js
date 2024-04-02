@@ -528,13 +528,4 @@ function array_mod_pow(b, exp, mod, B) {
     return r;
 }
 ;
-const a = (1n << 256n) - 1n;
-// console.log(check_array_div([a, 7n, a, 12n, a, 20n, a, 80n], [a, a, a, a, 100n], 1n << 256n));
-// console.log(array_mod_pow([2n, 1n, 1n, 1n], [3n, 5n], [4n, 6n, 7n], 1n << 256n));
-// console.log(Hamming_weight([a, a]))
-// console.log(array_mod_pow([2n, 1n, 1n, 1n], [a, a], [4n, 6n, 7n], 1n << 256n));
-console.log(array_short_mul([
-    115792089237316195423570985008687907853269984665640564039457584007913129639935n,
-    115792089237316195423570985008687907853269984665640564039457584007913129639935n,
-], 115792089237316195423570985008687907853269984665640564039457584007913129639935n, 1n << 256n));
 //# sourceMappingURL=auxiliary.js.map

@@ -181,18 +181,18 @@ function mpREDC(T: bigint[], R: bigint, M: bigint[], Minv: bigint, B: bigint): b
 }
 
 /**
- * 
+ *
  * @param Tsize Byte size of B.
  * @param Esize Byte size of E.
  * @param Msize Byte size of M.
  * @param B Base as unsigned integer.
  * @param E Exponent as unsigned integer.
  * @param M Modulus as unsigned integer.
- * @returns 
+ * @returns
  */
 // function modExp(Tsize: bigint, Esize: bigint, Msize: bigint, T: bigint[], E: bigint[], M: bigint[]): bigint[] {
 //     const B = 1n << 128n
-    
+
 //     const Mnumchunks = M.length;
 //     if (Mnumchunks === 1 && M[0] === 0n) {
 //         return [0n];
@@ -241,7 +241,7 @@ function test_REDC() {
     const T = 987654321n;
     const expectedResult = T % M;
     const result = montgomery_form(REDC(T, R, M, Minv),R,M);
-    
+
     if (expectedResult !== result) {
         throw new Error(`Error: expected ${expectedResult}, got ${result}`);
     } else {
@@ -261,7 +261,7 @@ function test_mpREDC1() {
         249711929963109668613287962193510370391n,
         248391936649258605054234440895903610156n,
     ];
-    const B = 2n ** 128n; 
+    const B = 2n ** 128n;
     const R = B ** 10n;
     const M = [
         288693961375620708181572571472501394033n,
@@ -276,7 +276,7 @@ function test_mpREDC1() {
     let Minv = egcd(B, bia2scalar(M,B))[1];
     const expectedResult = bia2scalar(T,B) % bia2scalar(M,B);
     const result = montgomery_form(bia2scalar(mpREDC(T, R, M, Minv, B),B),R,bia2scalar(M,B));
-    
+
     if (expectedResult !== result) {
         throw new Error(`Error: expected ${expectedResult}, got ${result}`);
     } else {
@@ -288,13 +288,13 @@ function test_mpREDC1() {
 
 function test_mpREDC2() {
     const T = [1n, 2n];
-    const B = 1n << 128n; 
+    const B = 1n << 128n;
     const R = B ** 8n;
     const M = [3n, 4n];
     let Minv = egcd(B, bia2scalar(M,B))[1];
     const expectedResult = bia2scalar(T,B) % bia2scalar(M,B);
     const result = montgomery_form(bia2scalar(mpREDC(T, R, M, Minv, B),B),R,bia2scalar(M,B));
-    
+
     if (expectedResult !== result) {
         throw new Error(`Error: expected ${expectedResult}, got ${result}`);
     } else {

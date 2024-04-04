@@ -63,15 +63,9 @@ Fq, E) {
             f = Fq.mul(f, line(R, Q, P, Fq.Fq, E));
             R = E.add(R, Q);
         }
-        else if (constants.ate_loop_count[i] === -1) {
-            const nQ = E.neg(Q);
-            f = Fq.mul(f, line(R, nQ, P, Fq.Fq, E));
-            R = E.add(R, nQ);
-        }
     }
-    // TODO: TO CHECK!!!
-    // We must conjugate the result since the BLS factor t is negative
-    return f;
+    // We must conjugate the result since the BLS parameter x is negative
+    return conjugateFp12(f);
 }
 /**
  * Find line y = mx + c passing through two points P and Q of E'(Fp2)
@@ -251,6 +245,7 @@ if (require.main === module) {
     // Test the optimal Ate Pairing over BLS12-381
     const P = parameters_1.G1;
     const Q = parameters_1.G2;
+    (0, chai_1.assert)(parameters_1.Fp12_o2.eq(optimal_ate_bls12_381(P, Q), constants.test_pairing), "The optimal Ate pairing is not working");
     const Q2 = parameters_1.tE.escalarMul(Q, 2n);
     const P2 = parameters_1.E.escalarMul(P, 2n);
     const P12 = parameters_1.E.escalarMul(P, 12n);

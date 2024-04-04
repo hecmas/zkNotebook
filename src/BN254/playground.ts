@@ -29,14 +29,3 @@ assert(
     Fp12.eq(e1, e2) && Fp12.eq(e1, e3) && Fp12.eq(e1, e4) && Fp12.eq(e1, e5),
     "The pairing is not bilinear"
 );
-
-// Test 2: Efficient Scalar Multiplication
-const S = {
-    x: 20003165157599505724822627051277038367118176092311529681748895592930988869629n,
-    y: 19521843329763029480438735371451116678177931327248380146196642919230980579494n,
-};
-// console.log(E.escalarMul(S, (r - 1n) / 2n));
-
-console.log(EFast.escalarMul(S, (r - 1n) / 2n));
-console.log(EFast.escalarMulGLV(S, (r - 1n) / 2n, 3));
-console.log(EFast.escalarMulwNAF(S, (r - 1n) / 2n, 3));

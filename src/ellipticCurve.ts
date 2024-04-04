@@ -61,6 +61,12 @@ export class EllipticCurveOverFp {
 
     // Comparators
     eq(P: PointOverFp, Q: PointOverFp): boolean {
+        if (P === this.zero) {
+            return Q === this.zero;
+        } else if (Q === this.zero) {
+            return false;
+        }
+
         return this.Fp.eq(P.x,Q.x) && this.Fp.eq(P.y,Q.y);
     }
 
@@ -297,6 +303,12 @@ export class EllipticCurveOverFq {
 
     // Comparators
     eq(P: PointOverFq, Q: PointOverFq): boolean {
+        if (P === this.zero) {
+            return Q === this.zero;
+        } else if (Q === this.zero) {
+            return false;
+        }
+
         return this.Fq.eq(P.x,Q.x) && this.Fq.eq(P.y,Q.y);
     }
 
@@ -418,6 +430,12 @@ export class EllipticCurveOverFqOverFq {
 
     // Comparators
     eq(P: PointOverFqOverFq, Q: PointOverFqOverFq): boolean {
+        if (P === this.zero) {
+            return Q === this.zero;
+        } else if (Q === this.zero) {
+            return false;
+        }
+
         return this.Fq.eq(P.x,Q.x) && this.Fq.eq(P.y,Q.y);
     }
 

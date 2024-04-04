@@ -53,6 +53,10 @@ export class ExtensionField implements FiniteField<bigint[]> {
         return !this.eq(a, b);
     }
 
+    isZero(a: bigint[]): boolean {
+        return this.eq(a, this.zero);
+    }
+
     // Basic Arithmetic
     mod(a: bigint[]): bigint[] {
         const dega = degree(a);
@@ -138,6 +142,18 @@ export class ExtensionField implements FiniteField<bigint[]> {
             }
             return this.mod(c);
         }
+    }
+
+    square(a: bigint[]): bigint[] {
+        return this.mul(a, a);
+    }
+
+    scalarMul(a: bigint[], k: bigint): bigint[] {
+        const c = new Array<bigint>(degree(a) + 1);
+        for (let i = 0; i < degree(a) + 1; i++) {
+            c[i] = this.Fp.mul(a[i], k);
+        }
+        return this.mod(c);
     }
 
     inv(a: bigint[]): bigint[] {
@@ -239,6 +255,10 @@ export class ExtensionFieldOverFq implements FiniteField<bigint[][]> {
         return !this.eq(a, b);
     }
 
+    isZero(a: bigint[][]): boolean {
+        return this.eq(a, this.zero);
+    }
+
     // Basic Arithmetic
     mod(a: bigint[][]): bigint[][] {
         const dega = degree2(a);
@@ -325,6 +345,18 @@ export class ExtensionFieldOverFq implements FiniteField<bigint[][]> {
             }
             return this.mod(c);
         }
+    }
+
+    square(a: bigint[][]): bigint[][] {
+        return this.mul(a, a);
+    }
+
+    scalarMul(a: bigint[][], k: bigint[]): bigint[][] {
+        const c = new Array<Array<bigint>>(degree2(a) + 1);
+        for (let i = 0; i < degree2(a) + 1; i++) {
+            c[i] = this.Fq.mul(a[i], k);
+        }
+        return this.mod(c);
     }
 
     inv(a: bigint[][]): bigint[][] {
@@ -435,6 +467,10 @@ export class ExtensionFieldOverFqOverFq implements FiniteField<bigint[][][]> {
         return !this.eq(a, b);
     }
 
+    isZero(a: bigint[][][]): boolean {
+        return this.eq(a, this.zero);
+    }
+
     // Basic Arithmetic
     mod(a: bigint[][][]): bigint[][][] {
         const dega = degree3(a);
@@ -523,6 +559,18 @@ export class ExtensionFieldOverFqOverFq implements FiniteField<bigint[][][]> {
             }
             return this.mod(c);
         }
+    }
+
+    square(a: bigint[][][]): bigint[][][] {
+        return this.mul(a, a);
+    }
+
+    scalarMul(a: bigint[][][], k: bigint[][]): bigint[][][] {
+        const c = new Array<Array<Array<bigint>>>(degree3(a) + 1);
+        for (let i = 0; i < degree3(a) + 1; i++) {
+            c[i] = this.Fq.mul(a[i], k);
+        }
+        return this.mod(c);
     }
 
     inv(a: bigint[][][]): bigint[][][] {

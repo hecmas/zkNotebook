@@ -1,3 +1,5 @@
+import { ExtensionField } from "../extensionField";
+
 export const x = 4965661367192848881n;
 export const t = 147946756881789318990833708069417712967n; // 6n * x ** 2n + 1n
 export const p =
@@ -11,6 +13,36 @@ export const ate_loop_count = [
     0, -1, 0, 0, 0, 0, 1, 1, 1, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1,
     1, 0, 0, -1, 0, 0, 0, 1, 1, 0, -1, 0, 0, 1, 0, 1, 1,
 ]; // This is 6x+2 in base {-1,0,1}
+
+// I have used the following function to generate and hardcode all the Frobenius constants gammaij
+// It assumes p satisfies p === 1 (mod 6)
+function Frobenius_constants(Fq: ExtensionField): bigint[][] {
+    const xi = [9n, 1n];
+    const e1 = (p - 1n) / 6n;
+    const e2 = (p ** 2n - 1n) / 6n;
+    const e3 = (p ** 3n - 1n) / 6n;
+
+    let gammas: bigint[][] = [];
+    for (let i = 1n; i < 6n; i++) {
+        gammas.push(Fq.exp(xi, i * e1));
+    }
+    for (let i = 1n; i < 6n; i++) {
+        gammas.push(Fq.exp(xi, i * e2));
+    }
+    for (let i = 1n; i < 6n; i++) {
+        gammas.push(Fq.exp(xi, i * e3));
+    }
+
+    return gammas;
+}
+
+function twist_constants(Fq: ExtensionField): bigint[][] {
+    const xi = [9n, 1n];
+    const e1 = (p - 1n) / 3n;
+    const e2 = (p - 1n) / 2n;
+
+    return [Fq.exp(xi, e1), Fq.exp(xi, e2)];
+}
 
 // Frobenius endomorphism constants
 export const gamma11 = [

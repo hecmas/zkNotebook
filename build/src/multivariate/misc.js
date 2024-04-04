@@ -33,20 +33,20 @@ exports.compute_eq_polynomial = compute_eq_polynomial;
  * @param p
  * @param f a multivariate polynomial over `Fp[X1,...,Xn]` where the degree in each variable is at most `d`
  * @param g a multivariate polynomial over `Fp[X1,...,Xn]` where the degree in each variable is at most `d`
- * @returns The polynomial over `Fp[X1,...,Xn,Xn+1]` that is equal to `(1 - Xn+1)·f(X) + Xn+1·g(X)`
+ * @returns The polynomial over `Fp[X0,X1,...,Xn]` that is equal to `(1 - X0)·f(X) + X0·g(X)`
  */
 function merge(p, f, g) {
     const nvarsf = (0, multivariatePolynomialRing_1.count_number_of_variables)(f);
     const nvarsg = (0, multivariatePolynomialRing_1.count_number_of_variables)(g);
     const nvars = nvarsf >= nvarsg ? nvarsf : nvarsg;
     const MPRp = new multivariatePolynomialRing_1.MultivariatePolynomialRing(p);
-    // 1 - Xn+1, Xn+1
+    // 1 - X0, X0
     const zeroarray = new Array(nvars + 1).fill(0);
     const onearray = new Array(nvars + 1).fill(0);
     onearray[0] = 1;
     const firstpol = new multivariatePolynomialRing_1.ArrayMap([[zeroarray, 1n], [onearray, -1n]]);
     const secondpol = new multivariatePolynomialRing_1.ArrayMap([[onearray, 1n]]);
-    // (1 - Xn+1)·f(X) + Xn+1·g(X)
+    // (1 - X0)·f(X) + X0·g(X)
     const factor1 = MPRp.mul(firstpol, MPRp.increase_nvars(f, 1));
     const factor2 = MPRp.mul(secondpol, MPRp.increase_nvars(g, 1));
     return MPRp.add(factor1, factor2);
@@ -90,7 +90,6 @@ g.set([0, 0, 3], 66n);
 g.set([1], 20n);
 g.set([0, 1], 13n);
 let merge_pol = merge(p, f, g);
-let nvars = (0, multivariatePolynomialRing_1.count_number_of_variables)(merge_pol);
 console.log(MPRp.toString(MPRp.eval_symbolic(merge_pol, [0n])));
 console.log(MPRp.toString(MPRp.eval_symbolic(merge_pol, [1n])));
 // let h = compute_eq_polynomial(p, 2);

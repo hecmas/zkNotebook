@@ -26,6 +26,9 @@ export class PrimeField implements FiniteField<bigint> {
         return !this.eq(a, b);
     }
 
+    isZero(a: bigint): boolean {
+        return this.mod(a) === 0n;
+    }
 
     // Basic Arithmetic
     mod(a: bigint): bigint {
@@ -47,6 +50,10 @@ export class PrimeField implements FiniteField<bigint> {
     // Q: Should this be improved for large integers????
     mul(a: bigint, b: bigint): bigint {
         return this.mod(a * b);
+    }
+
+    square(a: bigint): bigint {
+        return this.mod(a * a);
     }
 
     inv(a: bigint): bigint {

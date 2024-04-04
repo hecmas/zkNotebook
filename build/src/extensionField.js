@@ -44,6 +44,9 @@ class ExtensionField {
     neq(a, b) {
         return !this.eq(a, b);
     }
+    isZero(a) {
+        return this.eq(a, this.zero);
+    }
     // Basic Arithmetic
     mod(a) {
         const dega = (0, univariatePolynomialRing_1.degree)(a);
@@ -124,6 +127,16 @@ class ExtensionField {
             }
             return this.mod(c);
         }
+    }
+    square(a) {
+        return this.mul(a, a);
+    }
+    scalarMul(a, k) {
+        const c = new Array((0, univariatePolynomialRing_1.degree)(a) + 1);
+        for (let i = 0; i < (0, univariatePolynomialRing_1.degree)(a) + 1; i++) {
+            c[i] = this.Fp.mul(a[i], k);
+        }
+        return this.mod(c);
     }
     inv(a) {
         if (this.eq(a, this.zero))
@@ -218,6 +231,9 @@ class ExtensionFieldOverFq {
     neq(a, b) {
         return !this.eq(a, b);
     }
+    isZero(a) {
+        return this.eq(a, this.zero);
+    }
     // Basic Arithmetic
     mod(a) {
         const dega = degree2(a);
@@ -299,6 +315,16 @@ class ExtensionFieldOverFq {
             }
             return this.mod(c);
         }
+    }
+    square(a) {
+        return this.mul(a, a);
+    }
+    scalarMul(a, k) {
+        const c = new Array(degree2(a) + 1);
+        for (let i = 0; i < degree2(a) + 1; i++) {
+            c[i] = this.Fq.mul(a[i], k);
+        }
+        return this.mod(c);
     }
     inv(a) {
         if (this.eq(a, this.zero))
@@ -403,6 +429,9 @@ class ExtensionFieldOverFqOverFq {
     neq(a, b) {
         return !this.eq(a, b);
     }
+    isZero(a) {
+        return this.eq(a, this.zero);
+    }
     // Basic Arithmetic
     mod(a) {
         const dega = degree3(a);
@@ -486,6 +515,16 @@ class ExtensionFieldOverFqOverFq {
             }
             return this.mod(c);
         }
+    }
+    square(a) {
+        return this.mul(a, a);
+    }
+    scalarMul(a, k) {
+        const c = new Array(degree3(a) + 1);
+        for (let i = 0; i < degree3(a) + 1; i++) {
+            c[i] = this.Fq.mul(a[i], k);
+        }
+        return this.mod(c);
     }
     inv(a) {
         if (this.eq(a, this.zero))

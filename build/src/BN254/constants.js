@@ -12,6 +12,31 @@ exports.ate_loop_count = [
     0, -1, 0, 0, 0, 0, 1, 1, 1, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1,
     1, 0, 0, -1, 0, 0, 0, 1, 1, 0, -1, 0, 0, 1, 0, 1, 1,
 ]; // This is 6x+2 in base {-1,0,1}
+// I have used the following function to generate and hardcode all the Frobenius constants gammaij
+// It assumes p satisfies p === 1 (mod 6)
+function Frobenius_constants(Fq) {
+    const xi = [9n, 1n];
+    const e1 = (exports.p - 1n) / 6n;
+    const e2 = (exports.p ** 2n - 1n) / 6n;
+    const e3 = (exports.p ** 3n - 1n) / 6n;
+    let gammas = [];
+    for (let i = 1n; i < 6n; i++) {
+        gammas.push(Fq.exp(xi, i * e1));
+    }
+    for (let i = 1n; i < 6n; i++) {
+        gammas.push(Fq.exp(xi, i * e2));
+    }
+    for (let i = 1n; i < 6n; i++) {
+        gammas.push(Fq.exp(xi, i * e3));
+    }
+    return gammas;
+}
+function twist_constants(Fq) {
+    const xi = [9n, 1n];
+    const e1 = (exports.p - 1n) / 3n;
+    const e2 = (exports.p - 1n) / 2n;
+    return [Fq.exp(xi, e1), Fq.exp(xi, e2)];
+}
 // Frobenius endomorphism constants
 exports.gamma11 = [
     8376118865763821496583973867626364092589906065868298776909617916018768340080n,

@@ -21,6 +21,9 @@ class PrimeField {
     neq(a, b) {
         return !this.eq(a, b);
     }
+    isZero(a) {
+        return this.mod(a) === 0n;
+    }
     // Basic Arithmetic
     mod(a) {
         return a >= 0n ? a % this.p : ((a % this.p) + this.p) % this.p;
@@ -37,6 +40,9 @@ class PrimeField {
     // Q: Should this be improved for large integers????
     mul(a, b) {
         return this.mod(a * b);
+    }
+    square(a) {
+        return this.mod(a * a);
     }
     inv(a) {
         if (a === 0n)

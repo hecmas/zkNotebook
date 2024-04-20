@@ -1,8 +1,8 @@
 import { assert } from "chai";
 import * as constants from "./constants";
-import { G1, G2, E, tE, E12, Fp, Fp2, Fp12_o2, Fp12_o4 } from "./parameters";
+import { G1, G2, E, tE, E12, Fp, Fp2, Fp12_o2 } from "./parameters";
 import { PrimeField } from "../primeField";
-import { ExtensionField, ExtensionFieldOverFq, ExtensionFieldOverFqOverFq } from "../extensionField";
+import { ExtensionField, ExtensionFieldOverFq } from "../extensionField";
 import {
     PointOverFp,
     PointOverFq,
@@ -92,6 +92,7 @@ function Miller_loop_Ate_bls12_381(
     // We must conjugate the result since the BLS parameter x is negative
     return conjugateFp12(f);
 }
+
 /**
  * Find line y = mx + c passing through two points P and Q of E'(Fp2)
  * and evaluate it at a third point T of E'(Fp2)
@@ -157,13 +158,13 @@ function final_expontiation(
     const x = -constants.x;
 
     // 1] m^{(x+1)/3}
-    const y1 = Fq.exp(m, constants.x_plus_one_div_three_abs);
+    const y1 = exp_cyclo(m,constants.x_plus_one_div_three_abs,);
 
     // 2] m^{(x+1)^2/3}
-    const y2 = Fq.exp(y1, constants.x_plus_one_abs);
+    const y2 = exp_cyclo(y1, constants.x_plus_one_abs);
 
     // 3.1] m^{(x+1)^2/3*-x}
-    const y31 = Fq.exp(conjugateFp12(y2),x);
+    const y31 = exp_cyclo(conjugateFp12(y2),x);
 
     // 3.2] m^{(x+1)^2/3*p}
     const y32 = Frobenius_operator1(y2);
@@ -172,7 +173,7 @@ function final_expontiation(
     const y4 = Fq.mul(y31,y32);
 
     // 5.1] m^{(x+1)^2/3*(p-x)*x^2}
-    const y51 = Fq.exp(Fq.exp(y4, x), x);
+    const y51 = exp_cyclo(exp_cyclo(y4, x), x);
 
     // 5.2] m^{(x+1)^2/3*(p-x)*p^2}
     const y52 = Frobenius_operator2(y4);
@@ -239,6 +240,106 @@ function conjugateFp12(a: bigint[][]): bigint[][] {
     }
 
     return [a[0], Fp2.neg(a[1]), a[2], Fp2.neg(a[3]), a[4], Fp2.neg(a[5])];
+}
+
+function comp(b: bigint[][]): bigint[][] {
+    return [b[1],b[4],b[2],b[5]]
+}
+
+function decomp(b: bigint[][]): bigint[][] {
+    const b2 = b[0];
+    const b3 = b[1];
+    const b4 = b[2];
+    const b5 = b[3];
+
+    if ((b2[0] === 0n) && (b2[1] === 0n)) {
+        const b1 = Fp2.div(Fp2.scalarMul(Fp2.mul(b4,b5),2n),b3);
+        const b0 = Fp2.add(
+            Fp2.mul(
+                Fp2.sub(
+                    Fp2.scalarMul(Fp2.square(b1), 2n),
+                    Fp2.scalarMul(Fp2.mul(b3, b4), 3n)
+                ),
+                [1n, 1n]
+            ),
+            [1n, 0n]
+        );
+        return [b0,b2,b4,b1,b3,b5];
+    } else {
+        const b1 = Fp2.div(
+            Fp2.sub(
+                Fp2.add(
+                    Fp2.mul(Fp2.square(b5), [1n, 1n]),
+                    Fp2.scalarMul(Fp2.square(b4), 3n)
+                ),
+                Fp2.scalarMul(b3, 2n)
+            ),
+            Fp2.scalarMul(b2, 4n)
+        );
+        const b0 = Fp2.add(
+            Fp2.mul(
+                Fp2.sub(
+                    Fp2.add(Fp2.scalarMul(Fp2.square(b1), 2n), Fp2.mul(b2, b5)),
+                    Fp2.scalarMul(Fp2.mul(b3, b4), 3n)
+                ),
+                [1n, 1n]
+            ),
+            [1n, 0n]
+        );
+
+        return [b0,b2,b4,b1,b3,b5];
+    }
+}
+
+function square_comp(g: bigint[][]): bigint[][] {
+    const g2 = g[0];
+    const g3 = g[1];
+    const g4 = g[2];
+    const g5 = g[3];
+
+    const A23 = Fp2.mul(Fp2.add(g2, g3), Fp2.add(g2, Fp2.mul([1n, 1n], g3)));
+    const A45 = Fp2.mul(Fp2.add(g4, g5), Fp2.add(g4, Fp2.mul([1n, 1n], g5)));
+    const B23 = Fp2.mul(g2,g3);
+    const B45 = Fp2.mul(g4,g5);
+
+    const h2 = Fp2.scalarMul(
+        Fp2.add(g2, Fp2.scalarMul(Fp2.mul([1n, 1n], B45), 3n)),
+        2n
+    );
+
+    const h3 = Fp2.sub(
+        Fp2.scalarMul(Fp2.sub(A45, Fp2.mul([2n, 1n], B45)), 3n),
+        Fp2.scalarMul(g3, 2n)
+    );
+
+    const h4 = Fp2.sub(
+        Fp2.scalarMul(Fp2.sub(A23, Fp2.mul([2n, 1n], B23)), 3n),
+        Fp2.scalarMul(g4, 2n)
+    );
+
+    const h5 = Fp2.scalarMul(Fp2.add(g5, Fp2.scalarMul(B23, 3n)), 2n);
+
+    return [h2,h3,h4,h5];
+}
+
+function exp_cyclo(a: bigint[][], exp: bigint): bigint[][] {
+    let e_bin = [];
+    while (exp > 0n) {
+        e_bin.push(exp % 2n);
+        exp = exp / 2n;
+    }
+
+    let Ca = comp(a);
+    let result = [[1n]];
+    for (let i = 0; i < e_bin.length; i++) {
+        if (e_bin[i] === 1n) {
+            result = Fp12_o2.mul(decomp(Ca),result);
+        }
+
+        Ca = square_comp(Ca);
+    }
+
+    return result;
 }
 
 // Ref: https://eprint.iacr.org/2019/814.pdf

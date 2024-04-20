@@ -110,17 +110,17 @@ function final_expontiation(f, Fq = parameters_1.Fp12_o2) {
     // ==============================
     const x = -constants.x;
     // 1] m^{(x+1)/3}
-    const y1 = Fq.exp(m, constants.x_plus_one_div_three_abs);
+    const y1 = exp_cyclo(m, constants.x_plus_one_div_three_abs);
     // 2] m^{(x+1)^2/3}
-    const y2 = Fq.exp(y1, constants.x_plus_one_abs);
+    const y2 = exp_cyclo(y1, constants.x_plus_one_abs);
     // 3.1] m^{(x+1)^2/3*-x}
-    const y31 = Fq.exp(conjugateFp12(y2), x);
+    const y31 = exp_cyclo(conjugateFp12(y2), x);
     // 3.2] m^{(x+1)^2/3*p}
     const y32 = Frobenius_operator1(y2);
     // 4] m^{(x+1)^2/3*(p-x)}
     const y4 = Fq.mul(y31, y32);
     // 5.1] m^{(x+1)^2/3*(p-x)*x^2}
-    const y51 = Fq.exp(Fq.exp(y4, x), x);
+    const y51 = exp_cyclo(exp_cyclo(y4, x), x);
     // 5.2] m^{(x+1)^2/3*(p-x)*p^2}
     const y52 = Frobenius_operator2(y4);
     // 5.3] m^{(x+1)^2/3*(p-x)*-1}
@@ -173,6 +173,56 @@ function conjugateFp12(a) {
         a.push([0n]);
     }
     return [a[0], parameters_1.Fp2.neg(a[1]), a[2], parameters_1.Fp2.neg(a[3]), a[4], parameters_1.Fp2.neg(a[5])];
+}
+function comp(b) {
+    return [b[1], b[4], b[2], b[5]];
+}
+function decomp(b) {
+    const b2 = b[0];
+    const b3 = b[1];
+    const b4 = b[2];
+    const b5 = b[3];
+    if ((b2[0] === 0n) && (b2[1] === 0n)) {
+        const b1 = parameters_1.Fp2.div(parameters_1.Fp2.scalarMul(parameters_1.Fp2.mul(b4, b5), 2n), b3);
+        const b0 = parameters_1.Fp2.add(parameters_1.Fp2.mul(parameters_1.Fp2.sub(parameters_1.Fp2.scalarMul(parameters_1.Fp2.square(b1), 2n), parameters_1.Fp2.scalarMul(parameters_1.Fp2.mul(b3, b4), 3n)), [1n, 1n]), [1n, 0n]);
+        return [b0, b2, b4, b1, b3, b5];
+    }
+    else {
+        const b1 = parameters_1.Fp2.div(parameters_1.Fp2.sub(parameters_1.Fp2.add(parameters_1.Fp2.mul(parameters_1.Fp2.square(b5), [1n, 1n]), parameters_1.Fp2.scalarMul(parameters_1.Fp2.square(b4), 3n)), parameters_1.Fp2.scalarMul(b3, 2n)), parameters_1.Fp2.scalarMul(b2, 4n));
+        const b0 = parameters_1.Fp2.add(parameters_1.Fp2.mul(parameters_1.Fp2.sub(parameters_1.Fp2.add(parameters_1.Fp2.scalarMul(parameters_1.Fp2.square(b1), 2n), parameters_1.Fp2.mul(b2, b5)), parameters_1.Fp2.scalarMul(parameters_1.Fp2.mul(b3, b4), 3n)), [1n, 1n]), [1n, 0n]);
+        return [b0, b2, b4, b1, b3, b5];
+    }
+}
+function square_comp(g) {
+    const g2 = g[0];
+    const g3 = g[1];
+    const g4 = g[2];
+    const g5 = g[3];
+    const A23 = parameters_1.Fp2.mul(parameters_1.Fp2.add(g2, g3), parameters_1.Fp2.add(g2, parameters_1.Fp2.mul([1n, 1n], g3)));
+    const A45 = parameters_1.Fp2.mul(parameters_1.Fp2.add(g4, g5), parameters_1.Fp2.add(g4, parameters_1.Fp2.mul([1n, 1n], g5)));
+    const B23 = parameters_1.Fp2.mul(g2, g3);
+    const B45 = parameters_1.Fp2.mul(g4, g5);
+    const h2 = parameters_1.Fp2.scalarMul(parameters_1.Fp2.add(g2, parameters_1.Fp2.scalarMul(parameters_1.Fp2.mul([1n, 1n], B45), 3n)), 2n);
+    const h3 = parameters_1.Fp2.sub(parameters_1.Fp2.scalarMul(parameters_1.Fp2.sub(A45, parameters_1.Fp2.mul([2n, 1n], B45)), 3n), parameters_1.Fp2.scalarMul(g3, 2n));
+    const h4 = parameters_1.Fp2.sub(parameters_1.Fp2.scalarMul(parameters_1.Fp2.sub(A23, parameters_1.Fp2.mul([2n, 1n], B23)), 3n), parameters_1.Fp2.scalarMul(g4, 2n));
+    const h5 = parameters_1.Fp2.scalarMul(parameters_1.Fp2.add(g5, parameters_1.Fp2.scalarMul(B23, 3n)), 2n);
+    return [h2, h3, h4, h5];
+}
+function exp_cyclo(a, exp) {
+    let e_bin = [];
+    while (exp > 0n) {
+        e_bin.push(exp % 2n);
+        exp = exp / 2n;
+    }
+    let Ca = comp(a);
+    let result = [[1n]];
+    for (let i = 0; i < e_bin.length; i++) {
+        if (e_bin[i] === 1n) {
+            result = parameters_1.Fp12_o2.mul(decomp(Ca), result);
+        }
+        Ca = square_comp(Ca);
+    }
+    return result;
 }
 // Ref: https://eprint.iacr.org/2019/814.pdf
 function subgroup_check_G1(P, curve = parameters_1.E) {
